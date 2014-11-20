@@ -16,12 +16,18 @@ class client:
 
 	connected = False
 	client_socket = None
+	port=0
+	dest_port=0
+	dest_ip=0
+
 
 	def __init__(self, port, dest_port, dest_ip):
 
-		client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		client_socket.bind(('', port))
-
+		self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.client_socket.bind(('', port))
+		self.port=port
+		self.dest_port=dest_port
+		self.dest_ip=dest_ip
 	#def connect(dest_port, dest_ip):
 
 # Packet Header
@@ -42,8 +48,9 @@ class packet:
 		self.fcw = fcw
 		self.data = data
 
-
-
+p = packet(4000, 4001, 1, 0, 0, 0, 0, 0, 0, 1234, 0, "message")
+client_object = client(4000, 7000, '143.215.129.100')
+client_object.client_socket.sendto(p.data, (client_object.dest_ip, client_object.dest_port))
 
 
 

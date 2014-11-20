@@ -30,12 +30,15 @@ class server:
 		self.dest_port = dest_port
 		self.dest_ip = dest_ip
 
-		server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		server_socket.bind(('', port))
+		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		try:
+			self.server_socket.bind(('', 4001))
+		except:
+			print "failed bind"
 
-		packet = receive()
 
-	def receive():
+	def receive(self):
+		print 'got here'
 
 		received = False
 		# Just initialized
@@ -44,19 +47,21 @@ class server:
 		while not received:
 
 			# Check if the data is a packet or not
-			data, address = server_socket.recvfrom(512)
+			p, address = self.server_socket.recvfrom(512)
 
 			# Perform checksum stuff
 			# init random seq_num
 			seq_num = 0 #initialize to random
 			checksum = 0 #Need to calculate
-			fcw = # Need to init
+			fcw = 0# Need to init
 			data = 0 #Need to init
 
-			if (data.syn == 1):
-				ack_packet = packet(port, dest_port, seq_num, data.seq_num + 1, 1, 1, 0, 0, 0, checksum, fcw, data)
-				server_socket.sendto(ack_packet, address)
+			#if (data.syn == 1):
+			#	ack_packet = packet(port, dest_port, seq_num, data.seq_num + 1, 1, 1, 0, 0, 0, checksum, fcw, data)
+			#	server_socket.sendto(ack_packet, address)
+
+			print p
 
 
-
-
+s = server(4001, 7000, "143.215.129.100");
+s.receive()
