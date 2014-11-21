@@ -40,7 +40,7 @@ class server:
 			print "failed bind"
 
 	def connect(self):
-		self.server_socket.settimeout(5)
+		self.server_socket.settimeout(2)
 		p, address = self.server_socket.recvfrom(512)
 		response = unpack('iiiiiiiiiiis', p)
 		client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
@@ -50,24 +50,24 @@ class server:
 		while not self.connected:
 			try:
 				if client_packet.syn==1:
-					print client_packet
 					expected_seq_number=client_packet.seq_num+1
 					expected_ack_number=self.seq_num+1
 					response = pack('iiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 1432, 50, 'synack packet')
 					self.server_socket.sendto(response, ('', 4000))
 					checkPacket, address = self.server_socket.recvfrom(512)
+					self.seq_num+=1
 					firstDataReceived=checkPacket
 					#check again for corruption
 					response = unpack('iiiiiiiiiiis', checkPacket)
+					print response
 					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
 
 				elif client_packet.ack==1:
-					connected=True
-
+					self.connected=True
 
 			except socket.timeout:
 				continue
-		beginTransmission(firstDataReceived)
+		self.beginTransmission(firstDataReceived)
 
 	def beginTransmission(self, firstData):
 		print "yay we're connected"
