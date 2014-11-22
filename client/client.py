@@ -52,17 +52,26 @@ class client:
 				expected_sequence_number=ack_packet.seq_num
 				if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(p.seq_num+1):
 					self.synacked=True
-					self.connected=True
+					while not self.connected:
+						try:
+							connectionPacket = pack('iiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, 1234, 50, 'final connection')
+							self.client_socket.sendto(connectionPacket, ('', 4001))
+							shouldBeNull, addr = self.client_socket.recvfrom(512)
+							continue
+						except socket.timeout:
+							print 'nothing came through in 2 seconds, we are now connected'
+							self.connected=True
+							break
 			except socket.timeout:
 				continue
-		self.send_message(self.expected_sequence_number)
+		self.send_message()
 
-	def send_message(self, ack_packet_sequence_number):
+	def send_message(self):
 		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack
 		#essentially, we fire off a packet, we listen for an incoming one, if nothing comes, we resend
-		connectionPacket = pack('iiiiiiiiiiis', self.port, self.dest_port, self.seq_num, ack_packet_sequence_number+1, 0, 1, 0, 0, 0, 1234, 50, 'final connection')
-		self.client_socket.sendto(connectionPacket, ('', 4001))
 		print 'begin sending message after successful connection'
+
+
 
 
 # Packet Header
