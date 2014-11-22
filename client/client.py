@@ -40,23 +40,23 @@ class client:
 		ack_packet_sequence_number = None
 		while not self.synacked:
 			try: 	
-				p=packet(port, dest_port, 1, 0, 1, 0, 0, 0, 0, 1234, 50, 'syn packet')
+				p=packet(port, dest_port, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
 				#checksum must be calculated for original packets, and flow control window must be updated later
-				packed = pack('iiiiiiiiiiis', port, dest_port, 1, 0, 1, 0, 0, 0, 0, 1234, 50, 'syn packet')
+				packed = pack('iiiiiiiiiiiiis', port, dest_port, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 				expected_ack_number=2
 				self.client_socket.sendto(packed, ('', 4001))
 				response, address = self.client_socket.recvfrom(512)
-				response = unpack('iiiiiiiiiiis', response)
+				response = unpack('iiiiiiiiiiiiis', response)
 				#perform checksum for ack
 				#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
-				ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
+				ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 				expected_sequence_number=ack_packet.seq_num
 				if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(p.seq_num+1):
 					self.synacked=True
 					while not self.connected:
 						try:
-							connectionPacket = pack('iiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, 1234, 50, 'final connection')
+							connectionPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, 0, 0, 1234, 50, '')
 							self.client_socket.sendto(connectionPacket, ('', 4001))
 							shouldBeNull, addr = self.client_socket.recvfrom(512)
 							continue
@@ -79,7 +79,7 @@ class client:
 # Packet Header
 class packet:
 
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, checksum, fcw, data):
+	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, get, post, checksum, fcw, data):
 		# fcw = flow control window
 		self.src_port = src_port
 		self.dest_port = dest_port
@@ -90,6 +90,8 @@ class packet:
 		self.nack = nack
 		self.fin = fin
 		self.last = last
+		self.get=get
+		self.post=post
 		self.checksum = checksum
 		self.fcw = fcw
 		self.data = data

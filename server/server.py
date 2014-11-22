@@ -4,7 +4,7 @@ from struct import *
 # Packet Header
 class packet:
 
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, checksum, fcw, data):
+	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, get, post, checksum, fcw, data):
 		# fcw = flow control window
 		self.src_port = src_port
 		self.dest_port = dest_port
@@ -15,6 +15,8 @@ class packet:
 		self.nack = nack
 		self.fin = fin
 		self.last = last
+		self.get=get
+		self.post=post
 		self.checksum = checksum
 		self.fcw = fcw
 		self.data = data
@@ -42,8 +44,8 @@ class server:
 	def connect(self):
 		self.server_socket.settimeout(2)
 		p, address = self.server_socket.recvfrom(512)
-		response = unpack('iiiiiiiiiiis', p)
-		client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
+		response = unpack('iiiiiiiiiiiiis', p)
+		client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 		firstDataReceived=None
 		#check checksum
 		#make sure all values match up: is syn packet, then assign acknum field with seq+1
@@ -53,15 +55,15 @@ class server:
 					expected_seq_number=client_packet.seq_num+1
 					expected_ack_number=self.seq_num+1
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
-					response = pack('iiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 1432, 50, 'synack packet')
+					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, 1432, 50, '')
 					self.server_socket.sendto(response, ('', 4000))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
 					firstDataReceived=checkPacket
 					#check again for corruption
-					response = unpack('iiiiiiiiiiis', checkPacket)
+					response = unpack('iiiiiiiiiiiiis', checkPacket)
 					print response
-					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
+					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 
 				elif client_packet.ack==1:
 					self.connected=True
