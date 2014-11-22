@@ -41,6 +41,8 @@ class client:
 		while not self.synacked:
 			try: 	
 				p=packet(port, dest_port, 1, 0, 1, 0, 0, 0, 0, 1234, 50, 'syn packet')
+				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
+				#checksum must be calculated for original packets, and flow control window must be updated later
 				packed = pack('iiiiiiiiiiis', port, dest_port, 1, 0, 1, 0, 0, 0, 0, 1234, 50, 'syn packet')
 				expected_ack_number=2
 				self.client_socket.sendto(packed, ('', 4001))

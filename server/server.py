@@ -52,6 +52,7 @@ class server:
 				if client_packet.syn==1:
 					expected_seq_number=client_packet.seq_num+1
 					expected_ack_number=self.seq_num+1
+					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
 					response = pack('iiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 1432, 50, 'synack packet')
 					self.server_socket.sendto(response, ('', 4000))
 					checkPacket, address = self.server_socket.recvfrom(512)
