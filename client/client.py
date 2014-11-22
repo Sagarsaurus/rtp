@@ -23,6 +23,7 @@ class client:
 	dest_port=0
 	dest_ip=0
 	synacked=False
+	requestAcknowledged=False
 
 
 
@@ -40,10 +41,10 @@ class client:
 		ack_packet_sequence_number = None
 		while not self.synacked:
 			try: 	
-				p=packet(port, dest_port, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
+				p=packet(port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
 				#checksum must be calculated for original packets, and flow control window must be updated later
-				packed = pack('iiiiiiiiiiiiis', port, dest_port, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
+				packed = pack('iiiiiiiiiiiiis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 				expected_ack_number=2
 				self.client_socket.sendto(packed, ('', 4001))
 				response, address = self.client_socket.recvfrom(512)
@@ -54,6 +55,7 @@ class client:
 				expected_sequence_number=ack_packet.seq_num
 				if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(p.seq_num+1):
 					self.synacked=True
+					self.seq_num+=1
 					while not self.connected:
 						try:
 							connectionPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, 0, 0, 1234, 50, '')
@@ -63,18 +65,52 @@ class client:
 						except socket.timeout:
 							print 'nothing came through in 2 seconds, we are now connected'
 							self.connected=True
+							self.expected_sequence_number+=1
 							break
 			except socket.timeout:
 				continue
-		self.send_message()
+		self.send_get_or_post(1, 0)
 
-	def send_message(self):
+	def send_get_or_post(self, get, post):
 		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack
 		#essentially, we fire off a packet, we listen for an incoming one, if nothing comes, we resend
 		print 'begin sending message after successful connection'
+		if(get):
+			while not self.requestAcknowledged:
+				try:
+					getPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 1, 0, 321, 50, 'get request')
+					self.client_socket.sendto(getPacket, ('', 4001))
+					response, address = self.client_socket.recvfrom(512)
+					#check for corruption
+					response = unpack('iiiiiiiiiiiiis', response)
+					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if ack_packet.ack==1 and ack_packet.ack_num==(self.seq_num+1):
+						self.requestAcknowledged=True
+						self.receiveMessage(response)
+				except socket.timeout:
+					continue
 
 
+		elif(post):
+			while not self.requestAcknowledged:
+				try:
+					postPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 1, 321, 50, 'post request')
+					self.client_socket.sendto(postPacket, ('', 4001))
+					response, address = self.client_socket.recvfrom(512)
+					#check for corruption
+					response = unpack('iiiiiiiiiiiiis', response)
+					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if ack_packet.ack==1 and ack_packet.ack_num==(self.seq_num+1):
+						self.requestAcknowledged=True
+						self.sendMessage()
+				except socket.timeout:
+					continue
 
+	def receiveMessage(self, response):
+		print 'will extract data from response and then ack'
+
+	def sendMessage(self):
+		print 'will now send message'
 
 # Packet Header
 class packet:

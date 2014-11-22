@@ -28,6 +28,7 @@ class server:
 	seq_num=100
 	connected = False
 	server_socket = None
+	requestAcknowledged=False
 
 	def __init__(self, port, dest_port, dest_ip):
 
@@ -70,35 +71,48 @@ class server:
 
 			except socket.timeout:
 				continue
-		self.beginTransmission(firstDataReceived)
+		self.beginTransmission()
 
-	def beginTransmission(self, firstData):
+	def beginTransmission(self):
 		print "yay we're connected"
+		while True:
+			request, address = self.server_socket.recvfrom(512)
+			requestData = unpack('iiiiiiiiiiiiis', request)
+			#check for corruption here
+			request_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
+			if request_packet.get:
+				print 'organize data and send first packet back'
+				self.sendMessage()
+				break
+			elif request_packet.post:
+				print 'send back ack within receive and begin looping'
+				self.receive()
+				break
 
-
-
-
+	def sendMessage(self):
+		print 'packing and sending packet back'
 
 	def receive(self):
-
-		received = False
+		#must ack first, next value will be data
+		print 'ready to receive data from post request'
+		#received = False
 		# Just initialized
-		message = None
+		#message = None
 
-		while not received:
+		#while not received:
 
 			# Check if the data is a packet or not
-			p, address = self.server_socket.recvfrom(512)
-			response = unpack('iiiiiiiiiiis', p)
-			syn_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
+			#p, address = self.server_socket.recvfrom(512)
+			#response = unpack('iiiiiiiiiiis', p)
+			#syn_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11])
 
 
 			# Perform checksum stuff
 			# init random seq_num
-			seq_num = 0 #initialize to random
-			checksum = 0 #Need to calculate
-			fcw = 0# Need to init
-			data = 0 #Need to init
+			#seq_num = 0 #initialize to random
+			#checksum = 0 #Need to calculate
+			#fcw = 0# Need to init
+			#data = 0 #Need to init
 
 			#if (data.syn == 1):
 			#	ack_packet = packet(port, dest_port, seq_num, data.seq_num + 1, 1, 1, 0, 0, 0, checksum, fcw, data)
