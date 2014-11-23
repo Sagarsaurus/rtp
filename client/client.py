@@ -45,14 +45,13 @@ class client:
 				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
 				#checksum must be calculated for original packets, and flow control window must be updated later
 				packed = pack('iiiiiiiiiiiiis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
-				expected_ack_number=2
 				self.client_socket.sendto(packed, ('', 4001))
 				response, address = self.client_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiiiiis', response)
 				#perform checksum for ack
 				#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
 				ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-				expected_sequence_number=ack_packet.seq_num
+				self.expected_sequence_number=ack_packet.seq_num
 				if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(p.seq_num+1):
 					self.synacked=True
 					self.seq_num+=1
@@ -86,6 +85,7 @@ class client:
 					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 					if ack_packet.ack==1 and ack_packet.ack_num==(self.seq_num+1):
 						self.requestAcknowledged=True
+						self.expected_sequence_number+=1
 						self.receiveMessage(response)
 				except socket.timeout:
 					continue
