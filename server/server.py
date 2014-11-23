@@ -29,6 +29,8 @@ class server:
 	connected = False
 	server_socket = None
 	requestAcknowledged=False
+	entireMessageReceived=False
+	windowSize=5
 
 	def __init__(self, port, dest_port, dest_ip):
 
@@ -43,7 +45,7 @@ class server:
 			print "failed bind"
 
 	def connect(self):
-		self.server_socket.settimeout(2)
+		self.server_socket.settimeout(3)
 		p, address = self.server_socket.recvfrom(512)
 		response = unpack('iiiiiiiiiiiiis', p)
 		client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
@@ -77,11 +79,13 @@ class server:
 		print "yay we're connected"
 		while True:
 			request, address = self.server_socket.recvfrom(512)
-			requestData = unpack('iiiiiiiiiiiiis', request)
+			request = unpack('iiiiiiiiiiiiis', request)
 			#check for corruption here
 			request_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 			if request_packet.get:
 				print 'organize data and send first packet back'
+				print request_packet.seq_num
+				self.expected_seq_number=request_packet.seq_num+1
 				self.sendMessage()
 				break
 			elif request_packet.post:
@@ -91,6 +95,11 @@ class server:
 
 	def sendMessage(self):
 		print 'packing and sending packet back'
+		#while not self.entireMessageReceived:
+		response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'first data packet')
+		self.server_socket.sendto(response, ('', 4000))
+		#we need to make sure this gets there by listening for an ack, then we just need to pipeline sending and that's all that's necessary
+
 
 	def receive(self):
 		#must ack first, next value will be data
