@@ -69,7 +69,7 @@ class client:
 							break
 			except socket.timeout:
 				continue
-		self.send_get_or_post(1, 0)
+		self.send_get_or_post(0, 1)
 
 	def send_get_or_post(self, get, post):
 		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack

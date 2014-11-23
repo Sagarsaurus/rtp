@@ -62,7 +62,7 @@ class server:
 					self.server_socket.sendto(response, ('', 4000))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
-					firstDataReceived=checkPacket
+					self.expected_seq_number+=1
 					#check again for corruption
 					response = unpack('iiiiiiiiiiiiis', checkPacket)
 					print response
@@ -70,6 +70,7 @@ class server:
 
 				elif client_packet.ack==1:
 					self.connected=True
+					self.seq_num+=1
 
 			except socket.timeout:
 				continue
@@ -81,11 +82,10 @@ class server:
 			request, address = self.server_socket.recvfrom(512)
 			request = unpack('iiiiiiiiiiiiis', request)
 			#check for corruption here
+			self.expected_seq_number+=1
 			request_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 			if request_packet.get:
 				print 'organize data and send first packet back'
-				print request_packet.seq_num
-				self.expected_seq_number=request_packet.seq_num+1
 				self.sendMessage()
 				break
 			elif request_packet.post:
@@ -104,6 +104,10 @@ class server:
 	def receive(self):
 		#must ack first, next value will be data
 		print 'ready to receive data from post request'
+		response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number+1, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack for post')
+		self.expected_seq_number+=1
+		self.server_socket.sendto(response, ('', 4000))
+		#must loop here to handle potential packet loss
 		#received = False
 		# Just initialized
 		#message = None
