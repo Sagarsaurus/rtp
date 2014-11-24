@@ -30,7 +30,8 @@ class server:
 	server_socket = None
 	requestAcknowledged=False
 	entireMessageReceived=False
-	windowSize=5
+	windowSize=10
+	
 
 	def __init__(self, port, dest_port, dest_ip):
 
@@ -101,12 +102,37 @@ class server:
 
 	def sendMessage(self):
 		print 'packing and sending packets'
-		start = 0
-		end = start + self.windowSize
-		while not self.entireMessageReceived:
-			for i in range(start, end):
-				response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'first data packet')
-		self.server_socket.sendto(response, ('', 4000))
+		packets = self.packetize(self.message, self.packet_size)
+		print packets
+		lastPacketInOrder = self.seq_num
+		offset = self.seq_num
+		upperBound = lastPacketInOrder+self.window_size-offset
+		while not self.fullyTransmitted:
+			if lastPacketInOrder+self.window_size-offset>len(packets):
+				upperBound=len(packets)
+			else:
+				upperBound = lastPacketInOrder+self.window_size-offset
+			for i in range(lastPacketInOrder-offset, upperBound):
+				print lastPacketInOrder-offset
+				print upperBound
+				packingSetup = 'iiiiiiiiiiiii'
+				packet = packets[i]
+				packingSetup+=str(len(packet))+'s'
+				print packingSetup
+				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
+				if i == upperBound-1:
+					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
+				print toSend
+				self.client_socket.sendto(toSend, ('', 4001))
+				self.seq_num+=1
+			ack, address = self.client_socket.recvfrom(512)
+			response = unpack('iiiiiiiiiiiiis', ack)
+			print response
+			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+			lastPacketInOrder = response[3]
+			self.seq_num=lastPacketInOrder+offset
+			if response[3]==len(packets)+offset:
+				fullyTransmitted=True
 		#we need to make sure this gets there by listening for an ack, then we just need to pipeline sending and that's all that's necessary
 
 
@@ -138,6 +164,17 @@ class server:
 		
 		#while not messageEntirelyReceived:
 
+	def packetize(self, message, packet_size):
+		numOfFullPackets = len(message)/packet_size
+		index = 0
+		packets = []
+		for i in range(numOfFullPackets):
+			packets.append(message[index : index + packet_size])
+			index+=packet_size
+		if index < len(message):
+			packets.append(message[index:])
+
+		return packets
 
 
 
