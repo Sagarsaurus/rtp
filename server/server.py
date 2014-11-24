@@ -69,12 +69,18 @@ class server:
 					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 
 				elif client_packet.ack==1:
+					print 'yay we are connected'
 					self.connected=True
 					self.seq_num+=1
+					if client_packet.get:
+						self.sendMessage()
+					elif client_packet.post:
+						self.receive()
+					break
 
 			except socket.timeout:
 				continue
-		self.beginTransmission()
+		
 
 	def beginTransmission(self):
 		print "yay we're connected"
@@ -102,11 +108,29 @@ class server:
 
 
 	def receive(self):
+		message=[]
+		dataReceived = False
+		lastInOrderPacket=0
+		messageEntirelyReceived = False
 		#must ack first, next value will be data
 		print 'ready to receive data from post request'
-		response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number+1, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack for post')
-		self.expected_seq_number+=1
-		self.server_socket.sendto(response, ('', 4000))
+		while not dataReceived:
+			try:
+				response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number+1, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack for post')
+				self.server_socket.sendto(response, ('', 4000))
+				firstData, address = self.server_socket.recvfrom(512)
+				#check if data is corrupted, if it is, send a NACK
+				dataReceived=True
+			except socket.timeout:
+				continue
+		
+		#while not messageEntirelyReceived:
+
+
+
+
+		#self.expected_seq_number+=1
+
 		#must loop here to handle potential packet loss
 		#received = False
 		# Just initialized

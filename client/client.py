@@ -25,6 +25,8 @@ class client:
 	synacked=False
 	requestAcknowledged=False
 	packet_size=10
+	window_size = 5
+	fullyTransmitted=False
 	message = "This entire message must reach the server completely intact, hopefully it does this properly"
 
 
@@ -38,7 +40,7 @@ class client:
 		self.dest_ip=dest_ip
 	#def connect(dest_port, dest_ip):
 
-	def connect(self, port, dest_port, dest_ip):
+	def connect(self, port, dest_port, dest_ip, get, post):
 		self.client_socket.settimeout(2)
 		ack_packet_sequence_number = None
 		while not self.synacked:
@@ -59,7 +61,7 @@ class client:
 					self.seq_num+=1
 					while not self.connected:
 						try:
-							connectionPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, 0, 0, 1234, 50, '')
+							connectionPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, 1234, 50, '')
 							self.client_socket.sendto(connectionPacket, ('', 4001))
 							shouldBeNull, addr = self.client_socket.recvfrom(512)
 							continue
@@ -70,7 +72,10 @@ class client:
 							break
 			except socket.timeout:
 				continue
-		self.send_get_or_post(0, 1)
+		if get:
+			self.sendMessage()
+		elif post:
+			self.receiveMessage()
 
 	def send_get_or_post(self, get, post):
 		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack
@@ -108,13 +113,16 @@ class client:
 				except socket.timeout:
 					continue
 
-	def receiveMessage(self, response):
+	def receiveMessage(self):
 		print 'will extract data from response and then ack'
 
 	def sendMessage(self):
 		print 'will now send message'
 		packets = self.packetize(self.message, self.packet_size)
-		
+		lastPacketInOrder = 0
+		#while not self.fullyTransmitted:
+
+
 
 	def packetize(self, message, packet_size):
 		numOfFullPackets = len(message)/packet_size
@@ -155,7 +163,7 @@ class packet:
 
 
 client_object = client(4000, 7000, '143.215.129.100')
-client_object.connect(4000, 4001, '')
+client_object.connect(4000, 4001, '', 0, 1)
 
 
 
