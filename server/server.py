@@ -31,7 +31,7 @@ class server:
 	requestAcknowledged=False
 	entireMessageReceived=False
 	windowSize=10
-	
+
 
 	def __init__(self, port, dest_port, dest_ip):
 
@@ -146,22 +146,22 @@ class server:
 		while not dataReceived:
 			try:
 				data, address = self.server_socket.recvfrom(512)
+				payload = data[4*13:]
+				unpackingOffset = len(payload)
+				unpackingFormat = 'iiiiiiiiiiiii'+str(unpackingOffset)+'s'
 				#check for corruption
-				request = unpack('iiiiiiiiiiiii10s', data)
-				print request
+				request = unpack(unpackingFormat, data)
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				message+=client_packet.data
 				lastInOrderPacket+=1
-
 				if client_packet.last:
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
 					self.server_socket.sendto(response, ('', 4000))
-
 				print message
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
 				continue
-		
+				
 		#while not messageEntirelyReceived:
 
 	def packetize(self, message, packet_size):
