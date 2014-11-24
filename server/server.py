@@ -100,15 +100,18 @@ class server:
 				break
 
 	def sendMessage(self):
-		print 'packing and sending packet back'
-		#while not self.entireMessageReceived:
-		response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'first data packet')
+		print 'packing and sending packets'
+		start = 0
+		end = start + self.windowSize
+		while not self.entireMessageReceived:
+			for i in range(start, end):
+				response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'first data packet')
 		self.server_socket.sendto(response, ('', 4000))
 		#we need to make sure this gets there by listening for an ack, then we just need to pipeline sending and that's all that's necessary
 
 
 	def receive(self):
-		message=[]
+		message=""
 		dataReceived = False
 		lastInOrderPacket=0
 		messageEntirelyReceived = False
@@ -116,11 +119,20 @@ class server:
 		print 'ready to receive data from post request'
 		while not dataReceived:
 			try:
-				response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, self.expected_seq_number+1, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack for post')
-				self.server_socket.sendto(response, ('', 4000))
-				firstData, address = self.server_socket.recvfrom(512)
+				data, address = self.server_socket.recvfrom(512)
+				#check for corruption
+				request = unpack('iiiiiiiiiiiii10s', data)
+				print request
+				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
+				message+=client_packet.data
+				lastInOrderPacket+=1
+
+				if client_packet.last:
+					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
+					self.server_socket.sendto(response, ('', 4000))
+
+				print message
 				#check if data is corrupted, if it is, send a NACK
-				dataReceived=True
 			except socket.timeout:
 				continue
 		
