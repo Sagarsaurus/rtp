@@ -24,6 +24,8 @@ class client:
 	dest_ip=0
 	synacked=False
 	requestAcknowledged=False
+	packet_size=10
+	message = "This entire message must reach the server completely intact, hopefully it does this properly"
 
 
 
@@ -111,6 +113,22 @@ class client:
 
 	def sendMessage(self):
 		print 'will now send message'
+		packets = self.packetize(self.message, self.packet_size)
+		
+
+	def packetize(self, message, packet_size):
+		numOfFullPackets = len(message)/packet_size
+		index = 0
+		packets = []
+		for i in range(numOfFullPackets):
+			packets.append(message[index : index + packet_size])
+			index+=packet_size
+		if index < len(message):
+			packets.append(message[index:])
+
+		return packets
+
+
 
 # Packet Header
 class packet:
