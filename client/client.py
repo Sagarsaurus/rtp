@@ -119,27 +119,35 @@ class client:
 	def sendMessage(self):
 		print 'will now send message'
 		packets = self.packetize(self.message, self.packet_size)
+		print packets
 		lastPacketInOrder = self.seq_num
 		offset = self.seq_num
 		upperBound = lastPacketInOrder+self.window_size-offset
 		while not self.fullyTransmitted:
-			if lastPacketInOrder+self.window_size>=len(packets):
+			if lastPacketInOrder+self.window_size-offset>len(packets):
 				upperBound=len(packets)-1
+			else:
+				upperBound = lastPacketInOrder+self.window_size-offset
 			for i in range(lastPacketInOrder-offset, upperBound):
 				print lastPacketInOrder-offset
 				print upperBound
 				packingSetup = 'iiiiiiiiiiiii'
 				packet = packets[i]
 				packingSetup+=str(len(packet))+'s'
-				toSend = pack(packingSetup, self.port, self.dest_port, lastPacketInOrder, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
-				if i == lastPacketInOrder+self.window_size-1:
-					toSend = pack(packingSetup, self.port, self.dest_port, lastPacketInOrder, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
+				print packingSetup
+				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
+				if i == upperBound-1:
+					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
 				print toSend
 				self.client_socket.sendto(toSend, ('', 4001))
 			ack, address = self.client_socket.recvfrom(512)
 			response = unpack('iiiiiiiiiiiiis', ack)
-			ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-			lastPacketInOrder = ack_packet.ack_num
+			print response
+			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+			lastPacketInOrder = response[3]
+			self.seq_num=lastPacketInOrder+offset
+			if response[3]==len(packets)+offset:
+				fullyTransmitted=True
 			#check for corruption, if so timeout and resend entire window
 
 

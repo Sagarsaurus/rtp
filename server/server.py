@@ -71,7 +71,7 @@ class server:
 				elif client_packet.ack==1:
 					print 'yay we are connected'
 					self.connected=True
-					self.seq_num+=1
+					self.expected_seq_number+=1
 					if client_packet.get:
 						self.sendMessage()
 					elif client_packet.post:
@@ -128,7 +128,7 @@ class server:
 				lastInOrderPacket+=1
 
 				if client_packet.last:
-					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
+					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
 					self.server_socket.sendto(response, ('', 4000))
 
 				print message
