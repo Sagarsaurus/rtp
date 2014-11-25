@@ -63,7 +63,7 @@ class server:
 					expected_ack_number=self.seq_num+1
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, 1432, 50, '')
-					self.server_socket.sendto(response, ('', 4000))
+					self.server_socket.sendto(response, ('', 8000))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
 					self.expected_seq_number+=1
@@ -125,7 +125,7 @@ class server:
 				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
 				if i == upperBound-1:
 					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
-				self.server_socket.sendto(toSend, ('', 4000))
+				self.server_socket.sendto(toSend, ('', 8000))
 				self.seq_num+=1
 				print toSend
 			ack, address = self.server_socket.recvfrom(512)
@@ -158,7 +158,7 @@ class server:
 				lastInOrderPacket+=1
 				if client_packet.last:
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
-					self.server_socket.sendto(response, ('', 4000))
+					self.server_socket.sendto(response, ('', 8000))
 				print message
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:

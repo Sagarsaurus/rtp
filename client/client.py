@@ -49,7 +49,7 @@ class client:
 				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
 				#checksum must be calculated for original packets, and flow control window must be updated later
 				packed = pack('iiiiiiiiiiiiis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
-				self.client_socket.sendto(packed, ('', 4001))
+				self.client_socket.sendto(packed, ('', 8000))
 				response, address = self.client_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiiiiis', response)
 				#perform checksum for ack
@@ -62,7 +62,7 @@ class client:
 					while not self.connected:
 						try:
 							connectionPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, 1234, 50, '')
-							self.client_socket.sendto(connectionPacket, ('', 4001))
+							self.client_socket.sendto(connectionPacket, ('', 8000))
 							shouldBeNull, addr = self.client_socket.recvfrom(512)
 							continue
 						except socket.timeout:
@@ -86,7 +86,7 @@ class client:
 			while not self.requestAcknowledged:
 				try:
 					getPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 1, 0, 321, 50, 'get request')
-					self.client_socket.sendto(getPacket, ('', 4001))
+					self.client_socket.sendto(getPacket, ('', 8000))
 					response, address = self.client_socket.recvfrom(512)
 					#check for corruption
 					response = unpack('iiiiiiiiiiiiis', response)
@@ -103,7 +103,7 @@ class client:
 			while not self.requestAcknowledged:
 				try:
 					postPacket = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 1, 321, 50, 'post request')
-					self.client_socket.sendto(postPacket, ('', 4001))
+					self.client_socket.sendto(postPacket, ('', 8000))
 					response, address = self.client_socket.recvfrom(512)
 					#check for corruption
 					response = unpack('iiiiiiiiiiiiis', response)
@@ -135,7 +135,7 @@ class client:
 				lastInOrderPacket+=1
 				if client_packet.last:
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
-					self.client_socket.sendto(response, ('', 4001))
+					self.client_socket.sendto(response, ('', 8000))
 				print message
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
@@ -159,7 +159,7 @@ class client:
 				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
 				if i == upperBound-1:
 					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
-				self.client_socket.sendto(toSend, ('', 4001))
+				self.client_socket.sendto(toSend, ('', 8000))
 				self.seq_num+=1
 			ack, address = self.client_socket.recvfrom(512)
 			response = unpack('iiiiiiiiiiiiis', ack)
