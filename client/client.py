@@ -69,13 +69,14 @@ class client:
 							print 'nothing came through in 2 seconds, we are now connected'
 							self.connected=True
 							self.expected_sequence_number+=1
+							if get:
+								self.receiveMessage()
+							elif post:
+								self.sendMessage()
 							break
 			except socket.timeout:
 				continue
-		if get:
-			self.receiveMessage()
-		elif post:
-			self.sendMessage()
+
 
 	def send_get_or_post(self, get, post):
 		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack
@@ -114,7 +115,31 @@ class client:
 					continue
 
 	def receiveMessage(self):
-		print 'will extract data from response and then ack'
+		message=""
+		dataReceived = False
+		lastInOrderPacket=0
+		messageEntirelyReceived = False
+		#must ack first, next value will be data
+		print 'ready to receive data from get request'
+		while not dataReceived:
+			try:
+				data, address = self.client_socket.recvfrom(512)
+				payload = data[4*13:]
+				print payload
+				unpackingOffset = len(payload)
+				unpackingFormat = 'iiiiiiiiiiiii'+str(unpackingOffset)+'s'
+				#check for corruption
+				request = unpack(unpackingFormat, data)
+				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
+				message+=client_packet.data
+				lastInOrderPacket+=1
+				if client_packet.last:
+					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
+					self.client_socket.sendto(response, ('', 4001))
+				print message
+				#check if data is corrupted, if it is, send a NACK
+			except socket.timeout:
+				continue
 
 	def sendMessage(self):
 		print 'will now send message'
@@ -142,7 +167,7 @@ class client:
 			lastPacketInOrder = response[3]
 			self.seq_num=lastPacketInOrder+offset
 			if response[3]==len(packets)+offset:
-				fullyTransmitted=True
+				self.fullyTransmitted=True
 			#check for corruption, if so timeout and resend entire window
 
 
@@ -187,7 +212,7 @@ class packet:
 
 
 client_object = client(4000, 7000, '143.215.129.100')
-client_object.connect(4000, 4001, '', 0, 1)
+client_object.connect(4000, 4001, '', 1, 0)
 
 
 

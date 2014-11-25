@@ -30,7 +30,10 @@ class server:
 	server_socket = None
 	requestAcknowledged=False
 	entireMessageReceived=False
-	windowSize=10
+	window_size=7
+	packet_size = 20
+	message = "This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it"
+	fullyTransmitted=False
 
 
 	def __init__(self, port, dest_port, dest_ip):
@@ -46,7 +49,7 @@ class server:
 			print "failed bind"
 
 	def connect(self):
-		self.server_socket.settimeout(3)
+		self.server_socket.settimeout(2)
 		p, address = self.server_socket.recvfrom(512)
 		response = unpack('iiiiiiiiiiiiis', p)
 		client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
@@ -73,13 +76,16 @@ class server:
 					print 'yay we are connected'
 					self.connected=True
 					self.expected_seq_number+=1
-					if client_packet.get:
-						self.sendMessage()
-					elif client_packet.post:
-						self.receive()
-					break
+					self.server_socket.recvfrom(512)
+
 
 			except socket.timeout:
+				if client_packet.get:
+					self.sendMessage()
+					break
+				elif client_packet.post:
+					self.receive()
+					break
 				continue
 		
 
@@ -113,26 +119,22 @@ class server:
 			else:
 				upperBound = lastPacketInOrder+self.window_size-offset
 			for i in range(lastPacketInOrder-offset, upperBound):
-				print lastPacketInOrder-offset
-				print upperBound
 				packingSetup = 'iiiiiiiiiiiii'
 				packet = packets[i]
 				packingSetup+=str(len(packet))+'s'
-				print packingSetup
-				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
+				toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, 1234, 50, packet)
 				if i == upperBound-1:
-					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
-				print toSend
-				self.client_socket.sendto(toSend, ('', 4001))
+					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, 1234, 50, packet)
+				self.server_socket.sendto(toSend, ('', 4000))
 				self.seq_num+=1
-			ack, address = self.client_socket.recvfrom(512)
+				print toSend
+			ack, address = self.server_socket.recvfrom(512)
 			response = unpack('iiiiiiiiiiiiis', ack)
-			print response
 			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 			lastPacketInOrder = response[3]
 			self.seq_num=lastPacketInOrder+offset
 			if response[3]==len(packets)+offset:
-				fullyTransmitted=True
+				self.fullyTransmitted=True
 		#we need to make sure this gets there by listening for an ack, then we just need to pipeline sending and that's all that's necessary
 
 
