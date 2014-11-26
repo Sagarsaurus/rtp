@@ -68,6 +68,7 @@ class client:
 						except socket.timeout:
 							print 'nothing came through in 2 seconds, we are now connected'
 							self.connected=True
+							self.seq_num+=1
 							self.expected_sequence_number+=1
 							if get:
 								self.receiveMessage()
@@ -146,6 +147,7 @@ class client:
 				continue
 
 	def sendMessage(self):
+		self.client_socket.settimeout(8)
 		print 'will now send message'
 		packets = self.packetize(self.message, self.packet_size)
 		lastPacketInOrder = self.seq_num
@@ -167,6 +169,7 @@ class client:
 				self.seq_num+=1
 			ack, address = self.client_socket.recvfrom(512)
 			response = unpack('iiiiiiiiiiiiis', ack)
+			print response
 			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 			lastPacketInOrder = response[3]
 			self.seq_num=lastPacketInOrder
