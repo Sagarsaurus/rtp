@@ -59,14 +59,13 @@ class server:
 		while not self.connected:
 			try:
 				if client_packet.syn==1:
-					expected_seq_number=client_packet.seq_num+1
-					expected_ack_number=self.seq_num+1
+					self.expected_seq_number=client_packet.seq_num+1
+					self.expected_ack_number=self.seq_num+1
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, 1432, 50, '')
 					self.server_socket.sendto(response, ('', 8000))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
-					self.expected_seq_number+=1
 					#check again for corruption
 					response = unpack('iiiiiiiiiiiiis', checkPacket)
 					print response
@@ -76,7 +75,6 @@ class server:
 					print 'yay we are connected'
 					self.connected=True
 					self.expected_seq_number+=1
-					self.server_socket.recvfrom(512)
 
 
 			except socket.timeout:
@@ -87,6 +85,12 @@ class server:
 					self.receive()
 					break
 				continue
+
+		if client_packet.get:
+			self.sendMessage()
+		elif client_packet.post:
+			self.receive()
+			
 		
 
 	def beginTransmission(self):
@@ -139,6 +143,7 @@ class server:
 
 
 	def receive(self):
+		self.server_socket.settimeout(2)
 		message=""
 		dataReceived = False
 		lastInOrderPacket=0
@@ -153,18 +158,25 @@ class server:
 				unpackingFormat = 'iiiiiiiiiiiii'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
-				print request
+				#print request
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
-				message+=client_packet.data
-				lastInOrderPacket+=1
-				if client_packet.last:
-					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
-					self.server_socket.sendto(response, ('', 8000))
-				print message
+				if client_packet.seq_num==self.expected_seq_number:
+					self.expected_seq_number+=1
+					message+=client_packet.data
+					print message
+				else:
+					#force timeout due to all packets
+					count = 1
+					while True:
+						self.server_socket.recvfrom(512)
+					#continue
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
+				response = pack('iiiiiiiiiiiiis', self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, 431, 50, '')
+				#print response
+				self.server_socket.sendto(response, ('', 8000))
 				continue
-				
+			
 		#while not messageEntirelyReceived:
 
 	def packetize(self, message, packet_size):
