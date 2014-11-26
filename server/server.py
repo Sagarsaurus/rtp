@@ -132,7 +132,7 @@ class server:
 			response = unpack('iiiiiiiiiiiiis', ack)
 			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 			lastPacketInOrder = response[3]
-			self.seq_num=lastPacketInOrder+offset
+			self.seq_num=lastPacketInOrder
 			if response[3]==len(packets)+offset:
 				self.fullyTransmitted=True
 		#we need to make sure this gets there by listening for an ack, then we just need to pipeline sending and that's all that's necessary
@@ -153,6 +153,7 @@ class server:
 				unpackingFormat = 'iiiiiiiiiiiii'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
+				print request
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				message+=client_packet.data
 				lastInOrderPacket+=1

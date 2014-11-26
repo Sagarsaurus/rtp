@@ -130,12 +130,16 @@ class client:
 				unpackingFormat = 'iiiiiiiiiiiii'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
+				print request
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				message+=client_packet.data
 				lastInOrderPacket+=1
 				if client_packet.last:
 					response = pack('iiiiiiiiiiiiis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, 1432, 50, 'ack data')
+					temp = unpack('iiiiiiiiiiiiis', response)
+					print temp
 					self.client_socket.sendto(response, ('', 8000))
+
 				print message
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
@@ -165,7 +169,7 @@ class client:
 			response = unpack('iiiiiiiiiiiiis', ack)
 			#ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 			lastPacketInOrder = response[3]
-			self.seq_num=lastPacketInOrder+offset
+			self.seq_num=lastPacketInOrder
 			if response[3]==len(packets)+offset:
 				self.fullyTransmitted=True
 			#check for corruption, if so timeout and resend entire window
@@ -212,7 +216,7 @@ class packet:
 
 
 client_object = client(4000, 7000, '143.215.129.100')
-client_object.connect(4000, 4001, '', 1, 0)
+client_object.connect(4000, 4001, '', 0, 1)
 
 
 
