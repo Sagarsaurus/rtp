@@ -41,6 +41,18 @@ class util:
 	        n = n >> 1     
 	    return res[::-1]
 
+	def packetize(self, message, packet_size):
+		numOfFullPackets = len(message)/packet_size
+		index = 0
+		packets = []
+		for i in range(numOfFullPackets):
+			packets.append(message[index : index + packet_size])
+			index+=packet_size
+		if index < len(message):
+			packets.append(message[index:])
+
+		return packets
+
 
 
 # f = open('../app-client/file.txt', "rb");
