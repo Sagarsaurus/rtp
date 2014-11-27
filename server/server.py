@@ -105,6 +105,9 @@ class server:
 			return False
 
 	def sendMessage(self, message):
+		if not self.connected:
+			print 'You cannot send a message without connecting first'
+			return False
 		self.server_socket.settimeout(10)
 		print 'will now send message'
 		packets = self.u.packetize(message, self.packet_size)
@@ -146,6 +149,9 @@ class server:
 			#check for corruption, if so timeout and resend entire window
 
 	def receive(self):
+		if not self.connected:
+			print "You cannot receive a message without connecting first"
+			return False
 		self.server_socket.settimeout(2)
 		message=""
 		dataReceived = False
@@ -185,3 +191,9 @@ class server:
 				continue
 
 		return message
+
+server_object = server(4001, 8000, '')
+server_object.connect()
+message = server_object.receive()
+print message
+#server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")

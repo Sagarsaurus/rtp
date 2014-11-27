@@ -89,6 +89,9 @@ class client:
 
 
 	def receiveMessage(self):
+		if not self.connected:
+			print 'You cannot receive a message without being connected first'
+			return False
 		self.client_socket.settimeout(2)
 		message=""
 		dataReceived = False
@@ -130,6 +133,9 @@ class client:
 		return message
 
 	def sendMessage(self, message):
+		if not self.connected:
+			print 'You cannot send a message without connecting first!'
+			return False
 		self.client_socket.settimeout(10)
 		print 'will now send message'
 		packets = self.u.packetize(message, self.packet_size)
@@ -191,3 +197,10 @@ class packet:
 		self.checksum = checksum
 		self.fcw = fcw
 		self.data = data
+
+
+client_object = client(4000, 8000, '')
+client_object.connect(4000, 8000, '', 1, 0)
+client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
+#message = client_object.receiveMessage()
+#print message
