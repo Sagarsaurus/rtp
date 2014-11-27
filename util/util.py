@@ -27,7 +27,12 @@ class util:
 			sum1 = (sum1 + ord(data[i])) % 255
 			sum2 = (sum1 + sum2) % 255
 
-		return self.int2bin((sum2 << 8) | sum1)
+		retVal = int2bin(self.int2bin((sum2 << 8) | sum1))
+
+		if (len(retVal) < 16):
+			retVal = (16 - len(retVal))*'0' + retVal
+
+		return retVal
 
 	def int2bin(self, n):
 	    res = ''
@@ -36,9 +41,7 @@ class util:
 	        n = n >> 1     
 	    return res[::-1]
 
-# p=packet(1234, 1234, 8000, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
-# u = util()
-# print u.checksum(p)
+
 
 
 # f = open('../app-client/file.txt', "rb");
