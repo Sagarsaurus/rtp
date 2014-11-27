@@ -7,7 +7,7 @@ from util import *
 # Packet Header
 class packet:
 
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, get, post, checksum, fcw, data):
+	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, sync, fin, last, get, post, checksum, fcw, data):
 		# fcw = flow control window
 		self.src_port = src_port
 		self.dest_port = dest_port
@@ -15,7 +15,7 @@ class packet:
 		self.ack_num = ack_num
 		self.syn = syn
 		self.ack = ack
-		self.nack = nack
+		self.sync = sync
 		self.fin = fin
 		self.last = last
 		self.get=get
@@ -29,6 +29,7 @@ class server:
 	expected_seq_number=0
 	expected_ack_number=0
 	seq_num=100
+	state = None
 	connected = False
 	server_socket = None
 	requestAcknowledged=False
@@ -53,6 +54,9 @@ class server:
 			print "failed bind"
 
 	def connect(self):
+		syncPacket = None
+		requestAcknowledged = False
+		requestHandled = False
 		self.server_socket.settimeout(2)
 		while True:
 			try:
@@ -87,22 +91,63 @@ class server:
 					self.seq_num+=1
 					#check again for corruption
 					response = unpack('iiiiiiiiiii16sis', checkPacket)
-					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-
+					temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if temp_packet.checksum != self.u.checksum(temp_packet):
+						continue
+					client_packet = temp_packet
 
 				elif client_packet.ack==1:
 					print 'yay we are connected'
 					self.connected=True
 					self.expected_seq_number+=1
 					self.server_socket.recvfrom(512)
+					return True
 
 			except socket.timeout:
 				continue
 
-		if self.connected:
-			return True
-		else:
-			return False
+
+		client_packet = None
+		while not requestAcknowledged:
+			try:
+				if client_packet is None:
+					nextPacket, address = self.server_socket.recvfrom(512)
+					response = unpack('iiiiiiiiiii16sis', nextPacket)
+					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if client_packet.checksum!=self.u.checksum(client_packet):
+						client_packet=None
+						continue
+
+				elif client_packet.sync==1:
+					self.expected_seq_number=client_packet.seq_num+1
+					self.expected_ack_number=self.seq_num+1
+					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
+					responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, '', 50, 'a')
+					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+					self.server_socket.sendto(response, ('', 8000))
+					checkPacket, address = self.server_socket.recvfrom(512)
+					self.seq_num+=1
+					#check again for corruption
+					response = unpack('iiiiiiiiiii16sis', checkPacket)
+					temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if temp_packet.checksum != self.u.checksum(temp_packet):
+						continue
+					client_packet = temp_packet
+
+				elif client_packet.ack==1:
+					if client_packet.get:
+						self.state = 'post'
+					else:
+						self.state = 'post'
+					print 'yay fixed state'
+					requestAcknowledged=True
+					self.expected_seq_number+=1
+					self.server_socket.recvfrom(512)
+					return True
+
+			except socket.timeout:
+				continue
+
 
 	def sendMessage(self, message):
 		if not self.connected:
@@ -167,6 +212,7 @@ class server:
 				unpackingFormat = 'iiiiiiiiiii16si'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
+				print request
 				#print request
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				if client_packet.checksum != self.u.checksum(client_packet):
@@ -193,6 +239,7 @@ class server:
 		return message
 
 server_object = server(4001, 8000, '')
+server_object.connect()
 server_object.connect()
 message = server_object.receive()
 print message
