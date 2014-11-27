@@ -78,50 +78,15 @@ class client:
 							self.connected=True
 							self.seq_num+=1
 							self.expected_sequence_number+=1
-							if get:
-								self.receiveMessage()
-							elif post:
-								self.sendMessage()
-							break
+
 			except socket.timeout:
 				continue
 
+			if self.synacked and self.connected:
+				return True
+			else:
+				return False
 
-	def send_get_or_post(self, get, post):
-		#need to add logic such that first data goes with ack for synack, but if this packet is lost, we will get another synack
-		#essentially, we fire off a packet, we listen for an incoming one, if nothing comes, we resend
-		print 'begin sending message after successful connection'
-		if(get):
-			while not self.requestAcknowledged:
-				try:
-					getPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 1, 0, 321, 50, 'get request')
-					self.client_socket.sendto(getPacket, ('', 8000))
-					response, address = self.client_socket.recvfrom(512)
-					#check for corruption
-					response = unpack('iiiiiiiiiii16sis', response)
-					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-					if ack_packet.ack==1 and ack_packet.ack_num==(self.seq_num+1):
-						self.requestAcknowledged=True
-						self.expected_sequence_number+=1
-						self.receiveMessage(response)
-				except socket.timeout:
-					continue
-
-
-		elif(post):
-			while not self.requestAcknowledged:
-				try:
-					postPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 1, 321, 50, 'post request')
-					self.client_socket.sendto(postPacket, ('', 8000))
-					response, address = self.client_socket.recvfrom(512)
-					#check for corruption
-					response = unpack('iiiiiiiiiii16sis', response)
-					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-					if ack_packet.ack==1 and ack_packet.ack_num==(self.seq_num+1):
-						self.requestAcknowledged=True
-						self.sendMessage()
-				except socket.timeout:
-					continue
 
 	def receiveMessage(self):
 		self.client_socket.settimeout(2)
@@ -167,36 +132,42 @@ class client:
 	def sendMessage(self, message):
 		self.client_socket.settimeout(10)
 		print 'will now send message'
-		packets = self.u.packetize(self.message, self.packet_size)
+		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
 		offset = self.seq_num
 		upperBound = lastPacketInOrder+self.window_size-offset
 		while not self.fullyTransmitted:
-			if lastPacketInOrder+self.window_size-offset>len(packets):
-				upperBound=len(packets)
-			else:
-				upperBound = lastPacketInOrder+self.window_size-offset
-			for i in range(lastPacketInOrder-offset, upperBound):
-				packingSetup = 'iiiiiiiiiii16si'
-				item = packets[i]
-				packingSetup+=str(len(item))+'s'
-				if i == upperBound-1:
-					toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, '', 50, item)
-					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, self.u.checksum(toSendPacket), 50, item)
-				else:					
-					toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
-					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
-				self.client_socket.sendto(toSend, ('', 8000))
-				self.seq_num+=1
-			ack, address = self.client_socket.recvfrom(512)
-			response = unpack('iiiiiiiiiii16sis', ack)
-			ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-			if ack_packet.checksum != self.u.checksum(ack_packet):
-				continue			
-			lastPacketInOrder = response[3]
-			self.seq_num=lastPacketInOrder
-			if response[3]==len(packets)+offset:
-				self.fullyTransmitted=True
+			try:
+				if lastPacketInOrder+self.window_size-offset>len(packets):
+					upperBound=len(packets)
+				else:
+					upperBound = lastPacketInOrder+self.window_size-offset
+				for i in range(lastPacketInOrder-offset, upperBound):
+					packingSetup = 'iiiiiiiiiii16si'
+					item = packets[i]
+					packingSetup+=str(len(item))+'s'
+					if i == upperBound-1:
+						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, '', 50, item)
+						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, self.u.checksum(toSendPacket), 50, item)
+					else:					
+						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
+						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
+					self.client_socket.sendto(toSend, ('', 8000))
+					self.seq_num+=1
+				ack, address = self.client_socket.recvfrom(512)
+				response = unpack('iiiiiiiiiii16sis', ack)
+				ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+				if ack_packet.checksum != self.u.checksum(ack_packet):
+					continue			
+				lastPacketInOrder = response[3]
+				self.seq_num=lastPacketInOrder
+				if response[3]==len(packets)+offset:
+					self.fullyTransmitted=True
+			except socket.timeout:
+				if self.fullyTransmitted:
+					return True
+				else:
+					return False
 			#check for corruption, if so timeout and resend entire window
 
 
@@ -220,17 +191,3 @@ class packet:
 		self.checksum = checksum
 		self.fcw = fcw
 		self.data = data
-
-
-
-
-
-client_object = client(4000, 7000, '143.215.129.100')
-client_object.connect(4000, 4001, '', 1, 0)
-
-
-
-
-
-
-

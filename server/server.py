@@ -99,63 +99,50 @@ class server:
 			except socket.timeout:
 				continue
 
-		if client_packet.get:
-			self.sendMessage()
-		elif client_packet.post:
-			self.receive()
-			
-		
+		if self.connected:
+			return True
+		else:
+			return False
 
-	def beginTransmission(self):
-		print "yay we're connected"
-		while True:
-			request, address = self.server_socket.recvfrom(512)
-			request = unpack('iiiiiiiiiii16sis', request)
-			#check for corruption here
-			self.expected_seq_number+=1
-			request_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
-			if request_packet.get:
-				print 'organize data and send first packet back'
-				self.sendMessage()
-				break
-			elif request_packet.post:
-				print 'send back ack within receive and begin looping'
-				self.receive()
-				break
-
-	def sendMessage(self):
+	def sendMessage(self, message):
 		self.server_socket.settimeout(10)
 		print 'will now send message'
-		packets = self.u.packetize(self.message, self.packet_size)
+		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
 		offset = self.seq_num
 		upperBound = lastPacketInOrder+self.window_size-offset
 		while not self.fullyTransmitted:
-			if lastPacketInOrder+self.window_size-offset>len(packets):
-				upperBound=len(packets)
-			else:
-				upperBound = lastPacketInOrder+self.window_size-offset
-			for i in range(lastPacketInOrder-offset, upperBound):
-				packingSetup = 'iiiiiiiiiii16si'
-				item = packets[i]
-				packingSetup+=str(len(item))+'s'
-				if i == upperBound-1:
-					toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, '', 50, item)
-					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, self.u.checksum(toSendPacket), 50, item)
-				else:					
-					toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
-					toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
-				self.server_socket.sendto(toSend, ('', 8000))
-				self.seq_num+=1
-			ack, address = self.server_socket.recvfrom(512)
-			response = unpack('iiiiiiiiiii16sis', ack)
-			ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-			if ack_packet.checksum != self.u.checksum(ack_packet):
-				continue			
-			lastPacketInOrder = response[3]
-			self.seq_num=lastPacketInOrder
-			if response[3]==len(packets)+offset:
-				self.fullyTransmitted=True
+			try:
+				if lastPacketInOrder+self.window_size-offset>len(packets):
+					upperBound=len(packets)
+				else:
+					upperBound = lastPacketInOrder+self.window_size-offset
+				for i in range(lastPacketInOrder-offset, upperBound):
+					packingSetup = 'iiiiiiiiiii16si'
+					item = packets[i]
+					packingSetup+=str(len(item))+'s'
+					if i == upperBound-1:
+						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, '', 50, item)
+						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 1, 0, 0, self.u.checksum(toSendPacket), 50, item)
+					else:					
+						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
+						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
+					self.server_socket.sendto(toSend, ('', 8000))
+					self.seq_num+=1
+				ack, address = self.server_socket.recvfrom(512)
+				response = unpack('iiiiiiiiiii16sis', ack)
+				ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+				if ack_packet.checksum != self.u.checksum(ack_packet):
+					continue			
+				lastPacketInOrder = response[3]
+				self.seq_num=lastPacketInOrder
+				if response[3]==len(packets)+offset:
+					self.fullyTransmitted=True
+			except socket.timeout:
+				if self.fullyTransmitted:
+					return True
+				else:
+					return False
 			#check for corruption, if so timeout and resend entire window
 
 	def receive(self):
@@ -198,5 +185,3 @@ class server:
 				continue
 
 		return message
-s = server(4001, 7000, "143.215.129.100");
-s.connect()
