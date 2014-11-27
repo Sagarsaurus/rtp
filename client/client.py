@@ -3,7 +3,7 @@ from struct import *
 import sys
 sys.path.append('../util')
 from util import *
-
+from packet import *
 # # creating the socket for TCP
 # client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -98,7 +98,7 @@ class client:
 					print 'i am sending this'
 					initialPacket = packet(port, dest_port, self.seq_num, 0, 0, 1, 0, 0, 0, get, post, '', 50, 's')
 					packed = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, 0, 0, 1, 0, 0, 0, get, post, self.u.checksum(initialPacket), 50, 's')
-					self.client_socket.sendto(packed, ('', 8000))
+					self.client_socket.sendto(packed, ('', self.dest_port))
 					response, address = self.client_socket.recvfrom(512)
 					response = unpack('iiiiiiiiiii16sis', response)
 					#perform checksum for ack
@@ -109,12 +109,12 @@ class client:
 					self.expected_sequence_number=ack_packet.seq_num
 					if ack_packet.sync==1 and ack_packet.ack==1 and ack_packet.ack_num==(initialPacket.seq_num+1):
 						requestAcknowledged=True
-						self.seq_num+=1
+						self.seq_num=ack_packet.ack_num
 						while not requestHandled:
 							try:
 								finalStatePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
 								connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalStatePacket), 50, 'a')
-								self.client_socket.sendto(connectionPacket, ('', 8000))
+								self.client_socket.sendto(connectionPacket, ('', self.dest_port))
 								shouldBeNull, addr = self.client_socket.recvfrom(512)
 								continue
 							except socket.timeout:
@@ -170,7 +170,7 @@ class client:
 				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, '', 50, 'a')
 				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 				#print response
-				self.client_socket.sendto(response, ('', 8000))
+				self.client_socket.sendto(response, ('', self.dest_port))
 				continue
 
 		return message
@@ -202,7 +202,7 @@ class client:
 					else:					
 						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
 						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
-					self.client_socket.sendto(toSend, ('', 8000))
+					self.client_socket.sendto(toSend, ('', self.dest_port))
 					self.seq_num+=1
 				ack, address = self.client_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiii16sis', ack)
@@ -220,28 +220,11 @@ class client:
 					return False
 			#check for corruption, if so timeout and resend entire window
 
+	def setWindowSize(self, window_size):
+		self.window_size = window_size
 
-
-# Packet Header
-class packet:
-
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, sync, fin, last, get, post, checksum, fcw, data):
-		# fcw = flow control window
-		self.src_port = src_port
-		self.dest_port = dest_port
-		self.seq_num = seq_num
-		self.ack_num = ack_num
-		self.syn = syn
-		self.ack = ack
-		self.sync = sync
-		self.fin = fin
-		self.last = last
-		self.get=get
-		self.post=post
-		self.checksum = checksum
-		self.fcw = fcw
-		self.data = data
-
+	def close(self):
+		pass
 
 client_object = client(4000, 8000, '')
 client_object.connect(4000, 8000, '', 0, 0)
