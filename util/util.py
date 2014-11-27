@@ -27,7 +27,7 @@ class util:
 			sum1 = (sum1 + ord(data[i])) % 255
 			sum2 = (sum1 + sum2) % 255
 
-		retVal = int2bin(self.int2bin((sum2 << 8) | sum1))
+		retVal = self.int2bin((sum2 << 8) | sum1)
 
 		if (len(retVal) < 16):
 			retVal = (16 - len(retVal))*'0' + retVal
@@ -40,7 +40,6 @@ class util:
 	        res += str(n & 1)
 	        n = n >> 1     
 	    return res[::-1]
-
 
 
 
