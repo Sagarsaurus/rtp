@@ -11,7 +11,7 @@ class util:
 		data += self.int2bin(packet.ack_num).encode('utf-8')
 		data += self.int2bin(packet.syn).encode('utf-8')
 		data += self.int2bin(packet.ack).encode('utf-8')
-		data += self.int2bin(packet.nack).encode('utf-8')
+		data += self.int2bin(packet.sync).encode('utf-8')
 		data += self.int2bin(packet.fin).encode('utf-8')
 		data += self.int2bin(packet.last).encode('utf-8')
 		data += self.int2bin(packet.get).encode('utf-8')

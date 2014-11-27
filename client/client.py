@@ -48,45 +48,88 @@ class client:
 	def connect(self, port, dest_port, dest_ip, get, post):
 		self.client_socket.settimeout(2)
 		ack_packet_sequence_number = None
-		while not self.synacked:
-			try: 	
-				#these can remain hardcoded, these will stay constant for the beginning, but later on must change
-				#checksum must be calculated for original packets, and flow control window must be updated later
-				initialPacket = packet(port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, '', 50, 's')
-				packed = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
-				self.client_socket.sendto(packed, ('', 8000))
-				response, address = self.client_socket.recvfrom(512)
-				response = unpack('iiiiiiiiiii16sis', response)
-				#perform checksum for ack
-				#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
-				ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-				if ack_packet.checksum != self.u.checksum(ack_packet):
+		requestAcknowledged = False
+		requestHandled = False
+		if not get and not post:
+			while not self.synacked:
+				try: 	
+					#these can remain hardcoded, these will stay constant for the beginning, but later on must change
+					#checksum must be calculated for original packets, and flow control window must be updated later
+					initialPacket = packet(port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, '', 50, 's')
+					packed = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
+					self.client_socket.sendto(packed, ('', 8000))
+					response, address = self.client_socket.recvfrom(512)
+					response = unpack('iiiiiiiiiii16sis', response)
+					#perform checksum for ack
+					#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
+					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if ack_packet.checksum != self.u.checksum(ack_packet):
+						continue
+					self.expected_sequence_number=ack_packet.seq_num
+					if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(initialPacket.seq_num+1):
+						self.synacked=True
+						self.seq_num+=1
+						while not self.connected:
+							try:
+								finalConnectionPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
+								connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalConnectionPacket), 50, 'a')
+								self.client_socket.sendto(connectionPacket, ('', 8000))
+								shouldBeNull, addr = self.client_socket.recvfrom(512)
+								continue
+							except socket.timeout:
+								print 'nothing came through in 2 seconds, we are now connected'
+								self.connected=True
+								self.seq_num+=1
+								self.expected_sequence_number+=1
+
+				except socket.timeout:
 					continue
-				self.expected_sequence_number=ack_packet.seq_num
-				if ack_packet.syn==1 and ack_packet.ack==1 and ack_packet.ack_num==(initialPacket.seq_num+1):
-					self.synacked=True
-					self.seq_num+=1
-					while not self.connected:
-						try:
-							finalConnectionPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
-							connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalConnectionPacket), 50, 'a')
-							self.client_socket.sendto(connectionPacket, ('', 8000))
-							shouldBeNull, addr = self.client_socket.recvfrom(512)
-							continue
-						except socket.timeout:
-							print 'nothing came through in 2 seconds, we are now connected'
-							self.connected=True
-							self.seq_num+=1
-							self.expected_sequence_number+=1
 
-			except socket.timeout:
-				continue
+				if self.synacked and self.connected:
+					return True
+				else:
+					return False
 
-			if self.synacked and self.connected:
-				return True
-			else:
-				return False
+		else:
+			while not requestAcknowledged:
+				try: 	
+					#these can remain hardcoded, these will stay constant for the beginning, but later on must change
+					#checksum must be calculated for original packets, and flow control window must be updated later
+					print 'i am sending this'
+					initialPacket = packet(port, dest_port, self.seq_num, 0, 0, 1, 0, 0, 0, get, post, '', 50, 's')
+					packed = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, 0, 0, 1, 0, 0, 0, get, post, self.u.checksum(initialPacket), 50, 's')
+					self.client_socket.sendto(packed, ('', 8000))
+					response, address = self.client_socket.recvfrom(512)
+					response = unpack('iiiiiiiiiii16sis', response)
+					#perform checksum for ack
+					#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
+					ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if ack_packet.checksum != self.u.checksum(ack_packet):
+						continue
+					self.expected_sequence_number=ack_packet.seq_num
+					if ack_packet.sync==1 and ack_packet.ack==1 and ack_packet.ack_num==(initialPacket.seq_num+1):
+						requestAcknowledged=True
+						self.seq_num+=1
+						while not requestHandled:
+							try:
+								finalStatePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
+								connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalStatePacket), 50, 'a')
+								self.client_socket.sendto(connectionPacket, ('', 8000))
+								shouldBeNull, addr = self.client_socket.recvfrom(512)
+								continue
+							except socket.timeout:
+								print 'nothing came through in 2 seconds, we are now connected'
+								requestHandled=True
+								self.seq_num+=1
+								self.expected_sequence_number+=1
 
+				except socket.timeout:
+					continue
+
+				if requestHandled and requestAcknowledged:
+					return True
+				else:
+					return False
 
 	def receiveMessage(self):
 		if not self.connected:
@@ -137,6 +180,7 @@ class client:
 			print 'You cannot send a message without connecting first!'
 			return False
 		self.client_socket.settimeout(10)
+		self.seq_num+=1
 		print 'will now send message'
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
@@ -181,7 +225,7 @@ class client:
 # Packet Header
 class packet:
 
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, nack, fin, last, get, post, checksum, fcw, data):
+	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, sync, fin, last, get, post, checksum, fcw, data):
 		# fcw = flow control window
 		self.src_port = src_port
 		self.dest_port = dest_port
@@ -189,7 +233,7 @@ class packet:
 		self.ack_num = ack_num
 		self.syn = syn
 		self.ack = ack
-		self.nack = nack
+		self.sync = sync
 		self.fin = fin
 		self.last = last
 		self.get=get
@@ -200,7 +244,8 @@ class packet:
 
 
 client_object = client(4000, 8000, '')
-client_object.connect(4000, 8000, '', 1, 0)
+client_object.connect(4000, 8000, '', 0, 0)
+client_object.connect(4000, 8000, '', 0, 1)
 client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
 #message = client_object.receiveMessage()
 #print message
