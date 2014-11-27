@@ -124,6 +124,7 @@ class client:
 					continue
 
 	def receiveMessage(self):
+		self.client_socket.settimeout(2)
 		message=""
 		dataReceived = False
 		lastInOrderPacket=0
@@ -133,25 +134,33 @@ class client:
 		while not dataReceived:
 			try:
 				data, address = self.client_socket.recvfrom(512)
-				payload = data[4*13:]
+				payload = data[(4*12+16):]
 				unpackingOffset = len(payload)
 				unpackingFormat = 'iiiiiiiiiii16si'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
-				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
-				message+=client_packet.data
-				lastInOrderPacket+=1
-				if client_packet.last:
-					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, lastInOrderPacket+self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, 1632, 50, 'ack data')
-					temp = unpack('iiiiiiiiiii16sis', response)
-					self.client_socket.sendto(response, ('', 8000))
-
-				print message
+				#print request
+				server_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
+				if server_packet.checksum != self.u.checksum(server_packet):
+					continue
+				if server_packet.seq_num==self.expected_sequence_number:
+					self.expected_sequence_number+=1
+					message+=server_packet.data
+					print message
+				else:
+					#force timeout due to all packets
+					while True:
+						self.client_socket.recvfrom(512)
+					#continue
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
+				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, '', 50, 'a')
+				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+				#print response
+				self.client_socket.sendto(response, ('', 8000))
 				continue
 
-	def sendMessage(self):
+	def sendMessage(self, message):
 		self.client_socket.settimeout(10)
 		print 'will now send message'
 		packets = self.u.packetize(self.message, self.packet_size)
