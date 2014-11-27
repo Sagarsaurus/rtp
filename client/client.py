@@ -131,7 +131,7 @@ class client:
 		messageEntirelyReceived = False
 		#must ack first, next value will be data
 		print 'ready to receive data from get request'
-		while not dataReceived:
+		while not messageEntirelyReceived:
 			try:
 				data, address = self.client_socket.recvfrom(512)
 				payload = data[(4*12+16):]
@@ -146,6 +146,8 @@ class client:
 				if server_packet.seq_num==self.expected_sequence_number:
 					self.expected_sequence_number+=1
 					message+=server_packet.data
+					if server_packet.last:
+						messageEntirelyReceived=True
 					print message
 				else:
 					#force timeout due to all packets
@@ -159,6 +161,8 @@ class client:
 				#print response
 				self.client_socket.sendto(response, ('', 8000))
 				continue
+
+		return message
 
 	def sendMessage(self, message):
 		self.client_socket.settimeout(10)
@@ -222,7 +226,7 @@ class packet:
 
 
 client_object = client(4000, 7000, '143.215.129.100')
-client_object.connect(4000, 4001, '', 0, 1)
+client_object.connect(4000, 4001, '', 1, 0)
 
 
 
