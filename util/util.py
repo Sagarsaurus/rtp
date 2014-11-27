@@ -43,12 +43,10 @@ class util:
 
 
 
-# f = open('../app-client/file.txt', "rb");
-# stream = 'file.txt'.encode('utf-8') + '/' + f.read();
-# print stream
+p=packet(1234, 1234, 1234, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 
-# u = util()
-# print u.checksum(stream)
+u = util()
+print u.checksum(p)
 
 # f.close();
 
