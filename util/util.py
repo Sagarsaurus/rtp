@@ -1,6 +1,24 @@
+from packet import *
+
 class util:
 
-	def checksum(self, data):
+	def checksum(self, packet):
+		
+		data = ''
+		data += self.int2bin(packet.src_port).encode('utf-8')
+		data += self.int2bin(packet.dest_port).encode('utf-8')
+		data += self.int2bin(packet.seq_num).encode('utf-8')
+		data += self.int2bin(packet.ack_num).encode('utf-8')
+		data += self.int2bin(packet.syn).encode('utf-8')
+		data += self.int2bin(packet.ack).encode('utf-8')
+		data += self.int2bin(packet.nack).encode('utf-8')
+		data += self.int2bin(packet.fin).encode('utf-8')
+		data += self.int2bin(packet.last).encode('utf-8')
+		data += self.int2bin(packet.get).encode('utf-8')
+		data += self.int2bin(packet.post).encode('utf-8')
+		data += self.int2bin(packet.fcw).encode('utf-8')
+		data += (packet.data).encode('utf-8')
+
 		sum1 = 0
 		sum2 = 0
 
@@ -17,6 +35,10 @@ class util:
 	        res += str(n & 1)
 	        n = n >> 1     
 	    return res[::-1]
+
+# p=packet(1234, 1234, 8000, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
+# u = util()
+# print u.checksum(p)
 
 
 # f = open('../app-client/file.txt', "rb");
