@@ -86,51 +86,10 @@ class server:
 				continue
 
 
-		client_packet = None
-		while not requestAcknowledged:
-			try:
-				if client_packet is None:
-					nextPacket, address = self.server_socket.recvfrom(512)
-					response = unpack('iiiiiiiiiii16sis', nextPacket)
-					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-					if client_packet.checksum!=self.u.checksum(client_packet):
-						client_packet=None
-						continue
-
-				elif client_packet.sync==1:
-					self.expected_seq_number=client_packet.seq_num+1
-					self.expected_ack_number=self.seq_num+1
-					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
-					responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, '', 50, 'a')
-					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
-					self.server_socket.sendto(response, ('', self.dest_port))
-					checkPacket, address = self.server_socket.recvfrom(512)
-					self.seq_num+=1
-					#check again for corruption
-					response = unpack('iiiiiiiiiii16sis', checkPacket)
-					temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
-					if temp_packet.checksum != self.u.checksum(temp_packet):
-						continue
-					client_packet = temp_packet
-
-				elif client_packet.ack==1:
-					if client_packet.get:
-						self.state = 'post'
-					else:
-						self.state = 'post'
-					print 'yay fixed state'
-					requestAcknowledged=True
-					self.expected_seq_number+=1
-					return True
-
-			except socket.timeout:
-				continue
-
-
 	def sendMessage(self, message):
-		if not self.connected:
-			print 'You cannot send a message without connecting first'
-			return False
+#		if not self.connected:
+#			print 'You cannot send a message without connecting first!'
+#			return False
 		self.server_socket.settimeout(10)
 		print 'will now send message'
 		packets = self.u.packetize(message, self.packet_size)
@@ -172,9 +131,9 @@ class server:
 			#check for corruption, if so timeout and resend entire window
 
 	def receive(self):
-		if not self.connected:
-			print "You cannot receive a message without connecting first"
-			return False
+		#if not self.connected:
+		#	print "You cannot receive a message without connecting first"
+		#	return False
 		self.server_socket.settimeout(2)
 		message=""
 		dataReceived = False
@@ -214,9 +173,9 @@ class server:
 
 		return message
 
-# server_object = server(4001, 8000, '')
+server_object = server(4001, 8000, '')
+server_object.connect()
 # server_object.connect()
-# server_object.connect()
-# message = server_object.receive()
-# print message
-# server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
+#message = server_object.receive()
+#print message
+server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
