@@ -91,16 +91,12 @@ class appclient:
 		self.client_socket.sendMessage('close'.encode('utf-8'))
 
 		reply = self.client_socket.receiveMessage()
-		print "reply: ", reply
-
-		time.sleep(2)
 
 		if (reply == 'close'):
 			print "Client closing"
 			closed = self.client_socket.close()
 
 		if closed:
-			print "Closed Client"
 			self.established = False
 
 

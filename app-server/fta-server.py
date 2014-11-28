@@ -77,12 +77,10 @@ class appserver:
 
 				elif (vals[0] == 'close'):
 					print "Server closing"
+
 					self.server_socket.sendMessage(vals[0])
 
-					time.sleep(2)
-
 					closing = self.server_socket.connect()
-					print closing
 					if (closing):
 						self.connected = False
 

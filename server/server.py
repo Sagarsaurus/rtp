@@ -76,7 +76,6 @@ class server:
 					self.seq_num+=1
 
 				elif client_packet.fin==1:
-					print "Received Fin"
 					try:
 						self.expected_seq_number=client_packet.seq_num+1
 						self.expected_ack_number=self.seq_num+1
