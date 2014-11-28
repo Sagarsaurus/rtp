@@ -33,6 +33,8 @@ class appclient:
 			elif (inputs[0] == 'connect'):
 				if (self.created):
 					self.connect()
+				else:
+					print "No socket created yet"
 
 			elif (inputs[0] == 'post'):
 				if (self.established):
@@ -54,9 +56,11 @@ class appclient:
 					print 'Please create client socket'
 
 			elif (inputs[0] == 'disconnect'):
-
-				self.close()
-				self.disconnected = True
+				if (self.established):
+					self.close()
+					self.disconnected = True
+				else:
+					print "No connection to disconnect"
 
 	def connect(self):
 		established = self.client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 0)
