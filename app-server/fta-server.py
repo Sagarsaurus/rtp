@@ -24,12 +24,11 @@ class appserver:
 					self.port = int(inputs[1])
 					self.dest_ip = inputs[2]
 					self.dest_port	= int(inputs[3])
-					self.server_socket = server(self.port, self.dest_port, self.dest_ip)
-					self.startServer()
 				elif (len(inputs) == 3):
 					self.port = int(inputs[1])
 					self.dest_ip = ''
 					self.dest_port	= int(inputs[2])
+
 				self.server_socket = server(self.port, self.dest_port, self.dest_ip)
 				self.startServer()
 
@@ -48,7 +47,7 @@ class appserver:
 
 			if (inputs[0] == 'y'):
 				message = self.server_socket.receive()
-				print message
+				print "Message: ", message
 
 server = appserver()
 

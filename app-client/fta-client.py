@@ -49,18 +49,21 @@ class appclient:
 		client_socket = client(self.port, self.dest_port, self.dest_ip)
 		established = client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 0)
 		if (established):
-			return client_socket
 			self.established = established
+			return client_socket
 		else:
 			return None
 
 	def post(self, filename):
-
 		f = open(filename, "rb");
 		stream = filename.encode('utf-8') + '/' + f.read();
 		f.close();
+
 		if (self.established):
-			if (self.client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 1)):
+			# posting = self.client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 1)
+			# print posting
+			# if (posting):
+				print stream
 				self.client_socket.sendMessage(stream)
 
 

@@ -181,7 +181,7 @@ class server:
 		lastInOrderPacket=0
 		messageEntirelyReceived = False
 		#must ack first, next value will be data
-		print 'ready to receive data from post request'
+		#print 'ready to receive data from post request'
 		while not messageEntirelyReceived:
 			try:
 				data, address = self.server_socket.recvfrom(512)
@@ -199,7 +199,7 @@ class server:
 					message+=client_packet.data
 					if client_packet.last:
 						messageEntirelyReceived=True
-					print message
+					#print message
 				else:
 					#force timeout due to all packets
 					while True:
