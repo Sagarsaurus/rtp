@@ -49,7 +49,7 @@ class server:
 				continue	
 		#check checksum
 		#make sure all values match up: is syn packet, then assign acknum field with seq+1
-		while not self.connected:
+		while True:
 			try:
 				if client_packet is None:
 					nextPacket, address = self.server_socket.recvfrom(512)
