@@ -162,7 +162,9 @@ class client:
 					self.client_socket.sendto(toSend, ('', self.dest_port))
 					self.seq_num+=1
 				ack, address = self.client_socket.recvfrom(512)
-				response = unpack('iiiiiiiiiii16sis', ack)
+				unpackingFormat = 'iiiiiiiiiii16si'+str(len(ack[4*12+16:]))+'s'
+				response = unpack(unpackingFormat, ack)
+
 				ack_packet = packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 				if ack_packet.checksum != self.u.checksum(ack_packet):
 					continue			
