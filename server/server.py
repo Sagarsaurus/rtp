@@ -199,7 +199,6 @@ class server:
 					message+=client_packet.data
 					if client_packet.last:
 						messageEntirelyReceived=True
-					#print message
 				else:
 					#force timeout due to all packets
 					while True:
