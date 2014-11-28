@@ -80,7 +80,6 @@ class server:
 					print 'yay we are connected'
 					self.connected=True
 					self.expected_seq_number+=1
-					self.server_socket.recvfrom(512)
 					return True
 
 			except socket.timeout:
@@ -122,7 +121,6 @@ class server:
 					print 'yay fixed state'
 					requestAcknowledged=True
 					self.expected_seq_number+=1
-					self.server_socket.recvfrom(512)
 					return True
 
 			except socket.timeout:
@@ -192,7 +190,6 @@ class server:
 				unpackingFormat = 'iiiiiiiiiii16si'+str(unpackingOffset)+'s'
 				#check for corruption
 				request = unpack(unpackingFormat, data)
-				print request
 				#print request
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				if client_packet.checksum != self.u.checksum(client_packet):
