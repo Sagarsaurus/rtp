@@ -86,7 +86,8 @@ class server:
 						self.server_socket.sendto(response, ('', self.dest_port))
 						checkPacket, address = self.server_socket.recvfrom(512)
 						#check again for corruption
-						response = unpack('iiiiiiiiiii16sis', checkPacket)
+						unpackFormat = 'iiiiiiiiiii16si'+str(len(checkPacket[4*12+16]))+'s'
+						response = unpack(unpackFormat, checkPacket)
 						temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 						if temp_packet.checksum != self.u.checksum(temp_packet):
 							continue
@@ -99,7 +100,8 @@ class server:
 								fin = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(finPacket), 50, 'a')
 								self.server_socket.sendto(fin, ('', self.dest_port))
 								response, address = self.server_socket.recvfrom(512)
-								response = unpack('iiiiiiiiiii16sis', response)
+								finalPacketFormat = 'iiiiiiiiiii16si'+str(len(response[4*12+16]))+'s'
+								response = unpack(finalPacketFormat, response)
 								finAck_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 								if finAck_packet.checksum != self.u.checksum(finAck_packet):
 									continue
