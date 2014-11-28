@@ -80,7 +80,6 @@ class server:
 					print 'yay we are connected'
 					self.connected=True
 					self.expected_seq_number+=1
-					self.server_socket.recvfrom(512)
 					return True
 
 			except socket.timeout:
@@ -122,7 +121,6 @@ class server:
 					print 'yay fixed state'
 					requestAcknowledged=True
 					self.expected_seq_number+=1
-					self.server_socket.recvfrom(512)
 					return True
 
 			except socket.timeout:
