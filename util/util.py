@@ -36,6 +36,7 @@ class util:
 
 	def int2bin(self, n):
 	    res = ''
+	    print n
 	    while n > 0:
 	        res += str(n & 1)
 	        n = n >> 1

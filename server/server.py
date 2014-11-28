@@ -19,6 +19,7 @@ class server:
 	message = "This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it"
 	fullyTransmitted=False
 	u=None
+	closed = False
 
 
 	def __init__(self, port, dest_port, dest_ip):
@@ -34,14 +35,12 @@ class server:
 			print "failed bind"
 
 	def connect(self):
-		syncPacket = None
-		requestAcknowledged = False
-		requestHandled = False
 		self.server_socket.settimeout(2)
 		while True:
 			try:
 				p, address = self.server_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiii16sis', p)
+				#print response
 				client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 				if client_packet.checksum != self.u.checksum(client_packet):
 					client_packet=None
@@ -68,13 +67,49 @@ class server:
 					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 					self.server_socket.sendto(response, ('', self.dest_port))
 					checkPacket, address = self.server_socket.recvfrom(512)
-					self.seq_num+=1
 					#check again for corruption
 					response = unpack('iiiiiiiiiii16sis', checkPacket)
 					temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 					if temp_packet.checksum != self.u.checksum(temp_packet):
 						continue
 					client_packet = temp_packet
+					self.seq_num+=1
+
+				elif client_packet.fin==1:
+					print 'entered fin area'
+					try:
+						self.expected_seq_number=client_packet.seq_num+1
+						self.expected_ack_number=self.seq_num+1
+						#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
+						responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
+						response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+						self.server_socket.sendto(response, ('', self.dest_port))
+						checkPacket, address = self.server_socket.recvfrom(512)
+						#check again for corruption
+						response = unpack('iiiiiiiiiii16sis', checkPacket)
+						temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+						if temp_packet.checksum != self.u.checksum(temp_packet):
+							continue
+						self.seq_num+=1
+						client_packet = temp_packet
+					except socket.timeout:
+						while not self.closed:
+							try:
+								finPacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
+								fin = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(finPacket), 50, 'a')
+								self.server_socket.sendto(fin, ('', 8000))
+								response, address = self.server_socket.recvfrom(512)
+								response = unpack('iiiiiiiiiii16sis', response)
+								finAck_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+								if finAck_packet.checksum != self.u.checksum(finAck_packet):
+									continue
+								if finAck_packet.fin==1 and finAck_packet.ack==1:
+									self.closed = True
+									print 'closed'
+									return True
+
+							except socket.timeout:
+								continue
 
 				elif client_packet.ack==1:
 					print 'yay we are connected'
@@ -176,9 +211,70 @@ class server:
 
 		return message
 
-# server_object = server(4001, 8000, '')
-# server_object.connect()
+	def close(self):
+		self.server_socket.settimeout(2)
+		while True:
+			try:
+				p, address = self.server_socket.recvfrom(512)
+				response = unpack('iiiiiiiiiii16sis', p)
+				client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+				if client_packet.checksum != self.u.checksum(client_packet):
+					client_packet=None
+				break
+			except socket.timeout:
+				continue	
+		#check checksum
+		#make sure all values match up: is syn packet, then assign acknum field with seq+1
+		while not self.connected:
+			try:
+				if client_packet is None:
+					nextPacket, address = self.server_socket.recvfrom(512)
+					response = unpack('iiiiiiiiiii16sis', nextPacket)
+					client_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+					if client_packet.checksum!=self.u.checksum(client_packet):
+						client_packet=None
+						continue
+
+				elif client_packet.fin==1:
+					try:
+						self.expected_seq_number=client_packet.seq_num+1
+						self.expected_ack_number=self.seq_num+1
+						#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
+						responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
+						response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+						self.server_socket.sendto(response, ('', self.dest_port))
+						checkPacket, address = self.server_socket.recvfrom(512)
+						#check again for corruption
+						response = unpack('iiiiiiiiiii16sis', checkPacket)
+						temp_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+						if temp_packet.checksum != self.u.checksum(temp_packet):
+							continue
+						self.seq_num+=1
+						client_packet = temp_packet
+					except socket.timeout:
+						while not self.closed:
+							try:
+								finPacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
+								fin = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+								self.server_socket.sendto(fin, ('', 8000))
+								response, address = self.server_socket.receive(512)
+								finAck_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+								if finAck_packet.checksum != self.u.checksum(finAck_packet):
+									continue
+								if finAck_packet.fin==1 and finAck_packet.ack==1:
+									self.closed = True
+									print 'closed'
+									return True
+
+							except socket.timeout:
+								continue
+			except socket.timeout:
+				continue
+
+server_object = server(4001, 8000, '')
+server_object.connect()
 # # server_object.connect()
-# #message = server_object.receive()
-# #print message
+#message = server_object.receive()
+#print message
 # server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
+#server_object.close()

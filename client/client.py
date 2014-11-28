@@ -32,6 +32,8 @@ class client:
 	fullyTransmitted=False
 	u=None
 	message = "This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it"
+	finacked = False
+	closed = False
 
 
 
@@ -183,13 +185,57 @@ class client:
 		self.window_size = window_size
 
 	def close(self):
-		pass
+		self.client_socket.settimeout(2)
+		while not self.finacked:
+			try: 	
+				initialPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 1, 0, 0, 0, '', 50, 's')
+				packed = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
+				self.client_socket.sendto(packed, ('', 8000))
+				response, address = self.client_socket.recvfrom(512)
+				response = unpack('iiiiiiiiiii16sis', response)
+				#perform checksum for ack
+				#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
+				ack_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
+				if ack_packet.checksum != self.u.checksum(ack_packet):
+					continue
+				if ack_packet.fin==1 and ack_packet.ack==1 and ack_packet.ack_num==(initialPacket.seq_num+1):
+					self.finacked=True
+					self.seq_num+=1
+					while not self.closed:
+						try:
+							fin, address = self.client_socket.recvfrom(512)
+							fin = unpack('iiiiiiiiiii16sis', fin) 
+							fin_packet=packet(fin[0], fin[1], fin[2], fin[3], fin[4], fin[5], fin[6], fin[7], fin[8], fin[9], fin[10], fin[11], fin[12], fin[13])
+							if fin_packet.checksum != self.u.checksum(fin_packet):
+								continue
+							finAckPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
+							connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(finAckPacket), 50, 'a')
+							while True:
+								try:
+									self.client_socket.sendto(connectionPacket, ('', 8000))
+									shouldBeNull, addr = self.client_socket.recvfrom(512)
+								except socket.timeout:
+									self.closed=True
+									print 'closed'
+									return True
+									
+						except socket.timeout:
+							continue
 
-# client_object = client(4000, 8000, '')
-# client_object.connect(4000, 8000, '', 0, 0)
+			except socket.timeout:
+				continue
+
+			if self.synacked and self.connected:
+				return True
+			else:
+				return False
+
+client_object = client(4000, 8000, '')
+#client_object.connect(4000, 8000, '', 0, 0)
 # # client_object.connect(4000, 8000, '', 0, 1)
-# # client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
+#client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
 # message = client_object.receiveMessage()
 # print message
+client_object.close()
 
 
