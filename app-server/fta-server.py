@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../server')
 from server import *
+import time
 
 class appserver:
 	
@@ -14,7 +15,13 @@ class appserver:
 		self.terminated = False
 		self.connected = False
 
-		while (not self.connected):
+		while (not self.terminated):
+			self.startServer()
+
+
+	def startServer(self):
+
+		while (not self.terminated):
 
 			inputs = raw_input('>>> ')
 			inputs = inputs.split()
@@ -30,24 +37,25 @@ class appserver:
 					self.dest_port	= int(inputs[2])
 
 				self.server_socket = server(self.port, self.dest_port, self.dest_ip)
-				self.startServer()
 
-		self.running()
+				connected = self.server_socket.connect() #Same as listen
+				self.connected = connected
 
-	def startServer(self):
-		connected = self.server_socket.connect() #Same as listen
-		self.connected = connected
+				self.running()
+
+			elif (inputs[0] == 'terminate'):
+				self.terminated = True
+				print "Application Server Closing"
 
 	def running(self):
 
-		while not self.terminated:
+		while self.connected:
 
 			inputs = raw_input('>>> (Type y to continue): ')
 			inputs = inputs.split()
 
 			if (inputs[0] == 'y'):
 				message = self.server_socket.receive()
-				print message
 				vals = message.split('/')
 
 				if (vals[0] == 'post'):
@@ -67,10 +75,25 @@ class appserver:
 					f.close()
 					self.server_socket.sendMessage(data)
 
-				elif (vals[0] == 'window'):
+				elif (vals[0] == 'close'):
+					print "Server closing"
+					self.server_socket.sendMessage(vals[0])
 
-					window_size = int(vals[1])
-					self.server_socket.setWindowSize(window_size)
+					time.sleep(2)
+
+					closing = self.server_socket.connect()
+					print closing
+					if (closing):
+						self.connected = False
+
+
+			elif (inputs[0] == 'window'):
+
+				window_size = int(inputs[1])
+				self.server_socket.setWindowSize(window_size)
+
+			elif (inputs[0] == 'terminate'):
+				print "Please terminate client first"
 
 
 server = appserver()

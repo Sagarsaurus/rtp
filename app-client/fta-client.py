@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../client')
 from client import *
+import time
 
 class appclient:
 
@@ -31,7 +32,7 @@ class appclient:
 
 			elif (inputs[0] == 'connect'):
 				if (self.created):
-					self.client_socket = self.connect()
+					self.connect()
 
 			elif (inputs[0] == 'post'):
 				if (self.established):
@@ -53,6 +54,8 @@ class appclient:
 					print 'Please create client socket'
 
 			elif (inputs[0] == 'disconnect'):
+
+				self.close()
 				self.disconnected = True
 
 	def connect(self):
@@ -74,7 +77,7 @@ class appclient:
 
 
 	def post(self, filename):
-		
+
 		f = open(filename, "rb")
 		bslash = '/'.encode('utf-8')
 		stream = 'post'.encode('utf-8') + bslash + filename.encode('utf-8') + bslash + f.read()
@@ -82,6 +85,23 @@ class appclient:
 		
 		self.client_socket.sendMessage(stream)
 
+
+	def close(self):
+
+		self.client_socket.sendMessage('close'.encode('utf-8'))
+
+		reply = self.client_socket.receiveMessage()
+		print "reply: ", reply
+
+		time.sleep(2)
+
+		if (reply == 'close'):
+			print "Client closing"
+			closed = self.client_socket.close()
+
+		if closed:
+			print "Closed Client"
+			self.established = False
 
 
 client = appclient();
