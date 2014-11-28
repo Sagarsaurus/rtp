@@ -247,5 +247,7 @@ client_object = client(4000, 8000, '')
 client_object.connect(4000, 8000, '', 0, 0)
 client_object.connect(4000, 8000, '', 0, 1)
 client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
-#message = client_object.receiveMessage()
-#print message
+message = client_object.receiveMessage()
+print message
+
+

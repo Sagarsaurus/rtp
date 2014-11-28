@@ -38,7 +38,7 @@ class util:
 	    res = ''
 	    while n > 0:
 	        res += str(n & 1)
-	        n = n >> 1     
+	        n = n >> 1
 	    return res[::-1]
 
 	def packetize(self, message, packet_size):
@@ -55,10 +55,10 @@ class util:
 
 
 
-p=packet(1234, 1234, 1234, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
+# p=packet(1234, 1234, 1234, 0, 1, 0, 0, 0, 0, 0, 0, 1234, 50, '')
 
-u = util()
-print u.checksum(p)
+# u = util()
+# print u.checksum(p)
 
 # f.close();
 

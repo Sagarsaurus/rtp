@@ -1,3 +1,4 @@
 Application Commands
 
-fta-client 4000 143.215.129.100 7000
+fta-client 4000 '' 8000
+fta-server 4001 '' 8000

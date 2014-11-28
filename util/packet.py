@@ -8,7 +8,7 @@ class packet:
 		self.ack_num = ack_num
 		self.syn = syn
 		self.ack = ack
-		self.nack = nack
+		self.sync = sync
 		self.fin = fin
 		self.last = last
 		self.get=get

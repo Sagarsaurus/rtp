@@ -3,8 +3,6 @@ sys.path.append('../server')
 from server import *
 
 class appserver:
-
-	terminated = False
 	
 	def __init__(self):
 		self.port = 0
@@ -13,20 +11,35 @@ class appserver:
 		self.dest_ip = 0
 		self.server_socket = 0
 
-		terminated = False
+		self.terminated = False
+		self.connected = False
 
-		while (not terminated):
+		while (not self.terminated):
 
 			inputs = raw_input('>>> ')
 			inputs = inputs.split()
 
 			if (inputs[0] == 'fta-server'):
-				self.port = inputs[1]
-				self.dest_ip = inputs[2]
-				self.dest_port	= inputs[3]
-
+				if (len(inputs) == 4):
+					self.port = int(inputs[1])
+					self.dest_ip = inputs[2]
+					self.dest_port	= int(inputs[3])
+					self.server_socket = server(self.port, self.dest_port, self.dest_ip)
+					self.startServer()
+				elif (len(inputs) == 3):
+					self.port = int(inputs[1])
+					self.dest_ip = ''
+					self.dest_port	= int(inputs[2])
 				self.server_socket = server(self.port, self.dest_port, self.dest_ip)
+				self.startServer()
 
-			elif (inputs[0] == 'terminate')
+
+			elif (inputs[0] == 'terminate'):
 				terminated = True
+
+	def startServer(self):
+		connected = self.server_socket.connect() #Same as listen
+		return connected
+
+server = appserver()
 
