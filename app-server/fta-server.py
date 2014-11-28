@@ -47,18 +47,25 @@ class appserver:
 
 			if (inputs[0] == 'y'):
 				message = self.server_socket.receive()
-				filename = ''
-				i = 0
+				vals = message.split('/')
 
-				while (message[i] is not '/'):
-					filename += message[i]
-					i += 1
+				if (vals[0] == 'post'):
+					# print "Post Received"
+					filename = vals[1]
+					data = message[len(vals[0]) + 1 + len(vals[1]) + 1:]
 
-				data = message[i+1:]
+					f = open(filename, 'w')
+					f.write(data)
+					f.close()
 
-				f = open(filename, 'w')
-				f.write(data)
-				f.close()
+				elif (vals[0] == 'get'):
+
+					filename = vals[1]
+					f = open(filename, 'rb')
+					data = f.read()
+					f.close()
+					self.server_socket.sendMessage(data)
+
 
 server = appserver()
 
