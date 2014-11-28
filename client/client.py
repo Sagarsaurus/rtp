@@ -138,6 +138,7 @@ class client:
 			print 'You cannot send a message without connecting first!'
 			return False
 		self.client_socket.settimeout(10)
+		self.fullyTransmitted=False
 		print 'will now send message'
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num

@@ -92,6 +92,7 @@ class server:
 #			return False
 		self.server_socket.settimeout(10)
 		print 'will now send message'
+		self.fullyTransmitted=False
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
 		offset = self.seq_num
@@ -154,6 +155,7 @@ class server:
 				client_packet=packet(request[0], request[1], request[2], request[3], request[4], request[5], request[6], request[7], request[8], request[9], request[10], request[11], request[12], request[13])
 				if client_packet.checksum != self.u.checksum(client_packet):
 					continue
+
 				if client_packet.seq_num==self.expected_seq_number:
 					self.expected_seq_number+=1
 					message+=client_packet.data
