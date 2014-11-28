@@ -3,27 +3,7 @@ from struct import *
 import sys
 sys.path.append('../util')
 from util import *
-
-# Packet Header
-class packet:
-
-	def __init__(self, src_port, dest_port, seq_num, ack_num, syn, ack, sync, fin, last, get, post, checksum, fcw, data):
-		# fcw = flow control window
-		self.src_port = src_port
-		self.dest_port = dest_port
-		self.seq_num = seq_num
-		self.ack_num = ack_num
-		self.syn = syn
-		self.ack = ack
-		self.sync = sync
-		self.fin = fin
-		self.last = last
-		self.get=get
-		self.post=post
-		self.checksum = checksum
-		self.fcw = fcw
-		self.data = data
-
+from packet import *
 
 class server:
 	expected_seq_number=0
@@ -86,7 +66,7 @@ class server:
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
 					responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, '', 50, 'a')
 					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
-					self.server_socket.sendto(response, ('', 8000))
+					self.server_socket.sendto(response, ('', self.dest_port))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
 					#check again for corruption
@@ -124,7 +104,7 @@ class server:
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
 					responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, '', 50, 'a')
 					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 1, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
-					self.server_socket.sendto(response, ('', 8000))
+					self.server_socket.sendto(response, ('', self.dest_port))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					self.seq_num+=1
 					#check again for corruption
@@ -175,7 +155,7 @@ class server:
 					else:					
 						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, '', 50, item)
 						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 0, 0, 0, 0, 0, 0, self.u.checksum(toSendPacket), 50, item)
-					self.server_socket.sendto(toSend, ('', 8000))
+					self.server_socket.sendto(toSend, ('', self.dest_port))
 					self.seq_num+=1
 				ack, address = self.server_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiii16sis', ack)
@@ -233,7 +213,7 @@ class server:
 				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, '', 50, 'a')
 				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 				#print response
-				self.server_socket.sendto(response, ('', 8000))
+				self.server_socket.sendto(response, ('', self.dest_port))
 				continue
 
 		return message
