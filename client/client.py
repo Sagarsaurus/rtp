@@ -154,7 +154,7 @@ class client:
 					packingSetup = 'iiiiiiiiiii16si'
 					item = packets[i]
 					packingSetup+=str(len(item))+'s'
-					if i == upperBound-1:
+					if i == len(packets)-1:
 						toSendPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, '', 50, item)
 						toSend = pack(packingSetup, self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 0, 1, 0, 0, self.u.checksum(toSendPacket), 50, item)
 					else:					
