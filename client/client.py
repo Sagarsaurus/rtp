@@ -31,6 +31,7 @@ class client:
 	window_size = 7
 	fullyTransmitted=False
 	u=None
+	fcwUnit = 20
 	message = "This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it"
 	finacked = False
 	closed = False
@@ -100,11 +101,17 @@ class client:
 		message=""
 		dataReceived = False
 		lastInOrderPacket=0
+		fcwBuffer = [0] * 10
+		count = 0
 		messageEntirelyReceived = False
 		#must ack first, next value will be data
 		#print 'ready to receive data from post request'
 		while not messageEntirelyReceived:
 			try:
+				if count == (len(fcwBuffer) / 2):
+					for i in range(count):
+						fcwBuffer[i] = 0
+					count = 0
 				data, address = self.client_socket.recvfrom(512)
 				payload = data[(4*12+16):]
 				unpackingOffset = len(payload)
@@ -117,6 +124,7 @@ class client:
 					continue
 				if client_packet.seq_num==self.expected_sequence_number:
 					self.expected_sequence_number+=1
+					fcwBuffer[count] = client_packet.data
 					message+=client_packet.data
 					if client_packet.last:
 						messageEntirelyReceived=True
@@ -127,8 +135,8 @@ class client:
 					#continue
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
-				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, '', 50, 'a')
-				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, '', len(fcwBuffer) * self.fcwUnit - count * self.fcwUnit, 'a')
+				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), len(fcwBuffer) * self.fcwUnit - count * self.fcwUnit, 'a')
 				#print response
 				self.client_socket.sendto(response, ('', self.dest_port))
 				continue
@@ -144,10 +152,12 @@ class client:
 		print 'Will now send message'
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
+		maxPackets = 30
 		offset = self.seq_num
 		upperBound = lastPacketInOrder+self.window_size-offset
 		while not self.fullyTransmitted:
 			try:
+				upperPacket = min(maxPackets, self.window_size)
 				if lastPacketInOrder+self.window_size-offset>len(packets):
 					upperBound=len(packets)
 				else:
@@ -171,6 +181,8 @@ class client:
 				if ack_packet.checksum != self.u.checksum(ack_packet):
 					continue			
 				lastPacketInOrder = response[3]
+				maxData = response[12]
+				maxPackets = maxData / self.packet_size
 				self.seq_num=lastPacketInOrder
 				if response[3]==len(packets)+offset:
 					self.fullyTransmitted=True

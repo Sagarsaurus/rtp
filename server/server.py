@@ -16,6 +16,7 @@ class server:
 	entireMessageReceived=False
 	window_size=7
 	packet_size = 20
+	fcwUnit = 15 #in bytes
 	message = "This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it"
 	fullyTransmitted=False
 	u=None
@@ -129,10 +130,12 @@ class server:
 		self.fullyTransmitted=False
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
+		maxPackets = 30
 		offset = self.seq_num
 		upperBound = lastPacketInOrder+self.window_size-offset
 		while not self.fullyTransmitted:
 			try:
+				upperPacket = min(maxPackets, self.window_size)
 				if lastPacketInOrder+self.window_size-offset>len(packets):
 					upperBound=len(packets)
 				else:
@@ -156,6 +159,8 @@ class server:
 				if ack_packet.checksum != self.u.checksum(ack_packet):
 					continue			
 				lastPacketInOrder = response[3]
+				maxData = response[12]
+				maxPackets = maxData / self.packet_size
 				self.seq_num=lastPacketInOrder
 				if response[3]==len(packets)+offset:
 					self.fullyTransmitted=True
@@ -175,10 +180,16 @@ class server:
 		dataReceived = False
 		lastInOrderPacket=0
 		messageEntirelyReceived = False
+		fcwBuffer = [0] * 10
+		count = 0
 		#must ack first, next value will be data
 		#print 'ready to receive data from post request'
 		while not messageEntirelyReceived:
 			try:
+				if count == (len(fcwBuffer)/2):
+					for i in range(count):
+						fcwBuffer[i] = 0
+					count = 0
 				data, address = self.server_socket.recvfrom(512)
 				payload = data[(4*12+16):]
 				unpackingOffset = len(payload)
@@ -192,6 +203,7 @@ class server:
 
 				if client_packet.seq_num==self.expected_seq_number:
 					self.expected_seq_number+=1
+					fcwBuffer[count] = client_packet.data
 					message+=client_packet.data
 					if client_packet.last:
 						messageEntirelyReceived=True
@@ -202,8 +214,8 @@ class server:
 					#continue
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
-				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, '', 50, 'a')
-				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, '', len(fcwBuffer) * self.fcwUnit - count * fcwUnit, 'a')
+				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), len(fcwBuffer) * self.fcwUnit - count * fcwUnit, 'a')
 				#print response
 				self.server_socket.sendto(response, ('', self.dest_port))
 				continue
