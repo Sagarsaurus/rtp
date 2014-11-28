@@ -13,8 +13,7 @@ class appclient:
 		self.client_socket = 0
 		self.established = False
 		self.disconnected = False
-		# Valid arguments to create a client with a given destination
-		args_valid = False
+		self.created = False
 
 		while (not self.disconnected):
 
@@ -26,63 +25,62 @@ class appclient:
 					self.port = int(inputs[1])
 					self.dest_ip = inputs[2]
 					self.dest_port = int(inputs[3])
-					args_valid = True
 
-				# elif(len(inputs) == 3):
-				# 	self.port = int(inputs[1])
-				# 	self.dest_ip = ''
-				# 	self.dest_port = int(inputs[2])
-				# 	args_valid = True
+					self.created = True
+					self.client_socket = client(self.port, self.dest_port, self.dest_ip)
 
 			elif (inputs[0] == 'connect'):
-				if (args_valid):
+				if (self.created):
 					self.client_socket = self.connect()
 
 			elif (inputs[0] == 'post'):
-				self.post(inputs[1])
+				if (self.established):
+					self.post(inputs[1])
+				else: 
+					print "No connection established yet"
 
 			elif (inputs[0] == 'get'):
-				self.get(inputs[1])
+				if (self.established):
+					self.get(inputs[1])
+				else:
+					print "No connection established yet"
 
-			elif (vals[0] == 'window'):
-				window_size = int(vals[1])
-				self.client_socket.setWindowSize(window_size)
+			elif (inputs[0] == 'window'):
+				window_size = int(inputs[1])
+				if (self.created):
+					self.client_socket.setWindowSize(window_size)
+				else:
+					print 'Please create client socket'
 
 			elif (inputs[0] == 'disconnect'):
 				self.disconnected = True
 
 	def connect(self):
-
-		client_socket = client(self.port, self.dest_port, self.dest_ip)
-		established = client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 0)
+		established = self.client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 0)
 		if (established):
 			self.established = established
-			return client_socket
-		else:
-			return None
 
 	def get(self, filename):
 
 		bslash = '/'.encode('utf-8')
 		stream = 'get'.encode('utf-8') + bslash + filename.encode('utf-8')
 
-		if (self.established):
-			self.client_socket.sendMessage(stream)
-			message = self.client_socket.receiveMessage()
-			
-			f = open(filename, 'w')
-			f.write(message)
-			f.close()
+		self.client_socket.sendMessage(stream)
+		message = self.client_socket.receiveMessage()
+		
+		f = open(filename, 'w')
+		f.write(message)
+		f.close()
 
 
 	def post(self, filename):
+		
 		f = open(filename, "rb")
 		bslash = '/'.encode('utf-8')
 		stream = 'post'.encode('utf-8') + bslash + filename.encode('utf-8') + bslash + f.read()
 		f.close()
-
-		if (self.established):			
-			self.client_socket.sendMessage(stream)
+		
+		self.client_socket.sendMessage(stream)
 
 
 
