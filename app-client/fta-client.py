@@ -63,11 +63,12 @@ class appclient:
 		stream = 'get'.encode('utf-8') + bslash + filename.encode('utf-8')
 
 		if (self.established):
-			print stream
 			self.client_socket.sendMessage(stream)
 			message = self.client_socket.receiveMessage()
-			print message
-
+			
+			f = open(filename, 'w')
+			f.write(message)
+			f.close()
 
 
 	def post(self, filename):
@@ -83,12 +84,12 @@ class appclient:
 
 		# Need to init the client from the Transport layer
 
-	def decodeMessage(self, message):
+	# def decodeMessage(self, message):
 
-		message = message.split('/')
-		f = open(message[0], 'w')
-		f.write(message[1])
-		f.close()
+	# 	message = message.split('/')
+	# 	f = open(message[0], 'w')
+	# 	f.write(message[1])
+	# 	f.close()
 
 
 client = appclient();

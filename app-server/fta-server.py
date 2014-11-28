@@ -47,6 +47,7 @@ class appserver:
 
 			if (inputs[0] == 'y'):
 				message = self.server_socket.receive()
+				print message
 				vals = message.split('/')
 
 				if (vals[0] == 'post'):
