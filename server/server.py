@@ -264,6 +264,7 @@ class server:
 									continue
 								if finAck_packet.fin==1 and finAck_packet.ack==1:
 									self.closed = True
+									self.server_socket.close()
 									print 'closed'
 									return True
 

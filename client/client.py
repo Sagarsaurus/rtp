@@ -216,6 +216,7 @@ class client:
 									shouldBeNull, addr = self.client_socket.recvfrom(512)
 								except socket.timeout:
 									self.closed=True
+									self.client_socket.close()
 									print 'closed'
 									return True
 									
