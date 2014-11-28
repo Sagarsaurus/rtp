@@ -63,8 +63,8 @@ class server:
 					self.expected_seq_number=client_packet.seq_num+1
 					self.expected_ack_number=self.seq_num+1
 					#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
-					responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, '', 50, 'a')
-					response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+					responsePacket = packet(self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, '', 50, 'a')
+					response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 1, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 					self.server_socket.sendto(response, ('', self.dest_port))
 					checkPacket, address = self.server_socket.recvfrom(512)
 					#check again for corruption
@@ -76,13 +76,12 @@ class server:
 					self.seq_num+=1
 
 				elif client_packet.fin==1:
-					print 'entered fin area'
 					try:
 						self.expected_seq_number=client_packet.seq_num+1
 						self.expected_ack_number=self.seq_num+1
 						#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
-						responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
-						response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+						responsePacket = packet(self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
+						response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 						self.server_socket.sendto(response, ('', self.dest_port))
 						checkPacket, address = self.server_socket.recvfrom(512)
 						#check again for corruption
@@ -95,9 +94,9 @@ class server:
 					except socket.timeout:
 						while not self.closed:
 							try:
-								finPacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
-								fin = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(finPacket), 50, 'a')
-								self.server_socket.sendto(fin, ('', 8000))
+								finPacket = packet(self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
+								fin = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(finPacket), 50, 'a')
+								self.server_socket.sendto(fin, ('', self.dest_port))
 								response, address = self.server_socket.recvfrom(512)
 								response = unpack('iiiiiiiiiii16sis', response)
 								finAck_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
@@ -105,14 +104,14 @@ class server:
 									continue
 								if finAck_packet.fin==1 and finAck_packet.ack==1:
 									self.closed = True
-									print 'closed'
+									print 'Closed'
 									return True
 
 							except socket.timeout:
 								continue
 
 				elif client_packet.ack==1:
-					print 'yay we are connected'
+					print 'Connection Established'
 					self.connected=True
 					self.expected_seq_number+=1
 					return True
@@ -122,11 +121,11 @@ class server:
 
 
 	def sendMessage(self, message):
-#		if not self.connected:
-#			print 'You cannot send a message without connecting first!'
-#			return False
+		if not self.connected:
+			print 'You cannot send a message without connecting first!'
+			return False
 		self.server_socket.settimeout(10)
-		print 'will now send message'
+		print 'Will now send message'
 		self.fullyTransmitted=False
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
@@ -168,9 +167,9 @@ class server:
 			#check for corruption, if so timeout and resend entire window
 
 	def receive(self):
-		#if not self.connected:
-		#	print "You cannot receive a message without connecting first"
-		#	return False
+		if not self.connected:
+			print "You cannot receive a message without connecting first"
+			return False
 		self.server_socket.settimeout(2)
 		message=""
 		dataReceived = False
@@ -211,7 +210,7 @@ class server:
 
 		return message
 
-<<<<<<< HEAD
+
 	def close(self):
 		self.server_socket.settimeout(2)
 		while True:
@@ -241,8 +240,8 @@ class server:
 						self.expected_seq_number=client_packet.seq_num+1
 						self.expected_ack_number=self.seq_num+1
 						#acceptable for this packet to be hardcoded right now but later on it must be replaced with more variables
-						responsePacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
-						response = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+						responsePacket = packet(self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, '', 50, 'a')
+						response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
 						self.server_socket.sendto(response, ('', self.dest_port))
 						checkPacket, address = self.server_socket.recvfrom(512)
 						#check again for corruption
@@ -255,9 +254,9 @@ class server:
 					except socket.timeout:
 						while not self.closed:
 							try:
-								finPacket = packet(4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
-								fin = pack('iiiiiiiiiii16sis', 4001, 4000, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
-								self.server_socket.sendto(fin, ('', 8000))
+								finPacket = packet(self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, '', 50, 'a')
+								fin = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, client_packet.seq_num+1, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(responsePacket), 50, 'a')
+								self.server_socket.sendto(fin, ('', self.dest_port))
 								response, address = self.server_socket.receive(512)
 								finAck_packet=packet(response[0], response[1], response[2], response[3], response[4], response[5], response[6], response[7], response[8], response[9], response[10], response[11], response[12], response[13])
 								if finAck_packet.checksum != self.u.checksum(finAck_packet):

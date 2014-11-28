@@ -58,7 +58,7 @@ class client:
 				#checksum must be calculated for original packets, and flow control window must be updated later
 				initialPacket = packet(port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, '', 50, 's')
 				packed = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, 0, 1, 0, 0, 0, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
-				self.client_socket.sendto(packed, ('', 8000))
+				self.client_socket.sendto(packed, ('', dest_port))
 				response, address = self.client_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiii16sis', response)
 				#perform checksum for ack
@@ -72,13 +72,13 @@ class client:
 					self.seq_num+=1
 					while not self.connected:
 						try:
-							finalConnectionPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
-							connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalConnectionPacket), 50, 'a')
-							self.client_socket.sendto(connectionPacket, ('', 8000))
+							finalConnectionPacket = packet(port, dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, '', 50, 'a')
+							connectionPacket = pack('iiiiiiiiiii16sis', port, dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 0, 0, get, post, self.u.checksum(finalConnectionPacket), 50, 'a')
+							self.client_socket.sendto(connectionPacket, ('', self.dest_port))
 							shouldBeNull, addr = self.client_socket.recvfrom(512)
 							continue
 						except socket.timeout:
-							print 'nothing came through in 2 seconds, we are now connected'
+							print 'Nothing came through in 2 seconds, we are now connected'
 							self.connected=True
 							self.seq_num+=1
 							self.expected_sequence_number+=1
@@ -93,9 +93,9 @@ class client:
 
 
 	def receiveMessage(self):
-		#if not self.connected:
-		#	print "You cannot receive a message without connecting first"
-		#	return False
+		if not self.connected:
+			print "You cannot receive a message without connecting first"
+			return False
 		self.client_socket.settimeout(2)
 		message=""
 		dataReceived = False
@@ -141,7 +141,7 @@ class client:
 			return False
 		self.client_socket.settimeout(10)
 		self.fullyTransmitted=False
-		print 'will now send message'
+		print 'Will now send message'
 		packets = self.u.packetize(message, self.packet_size)
 		lastPacketInOrder = self.seq_num
 		offset = self.seq_num
@@ -190,7 +190,7 @@ class client:
 			try: 	
 				initialPacket = packet(self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 1, 0, 0, 0, '', 50, 's')
 				packed = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
-				self.client_socket.sendto(packed, ('', 8000))
+				self.client_socket.sendto(packed, ('', self.dest_port))
 				response, address = self.client_socket.recvfrom(512)
 				response = unpack('iiiiiiiiiii16sis', response)
 				#perform checksum for ack
@@ -212,7 +212,7 @@ class client:
 							connectionPacket = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number+1, 0, 1, 0, 1, 0, 0, 0, self.u.checksum(finAckPacket), 50, 'a')
 							while True:
 								try:
-									self.client_socket.sendto(connectionPacket, ('', 8000))
+									self.client_socket.sendto(connectionPacket, ('', self.dest_port))
 									shouldBeNull, addr = self.client_socket.recvfrom(512)
 								except socket.timeout:
 									self.closed=True
@@ -231,12 +231,12 @@ class client:
 			else:
 				return False
 
-client_object = client(4000, 8000, '')
+#client_object = client(4000, 8000, '')
 #client_object.connect(4000, 8000, '', 0, 0)
 # # client_object.connect(4000, 8000, '', 0, 1)
 #client_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
 # message = client_object.receiveMessage()
 # print message
-client_object.close()
+#client_object.close()
 
 
