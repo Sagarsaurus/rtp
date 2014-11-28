@@ -204,7 +204,7 @@ class client:
 				packed = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_sequence_number, 0, 0, 0, 1, 0, 0, 0, self.u.checksum(initialPacket), 50, 's')
 				self.client_socket.sendto(packed, ('', self.dest_port))
 				response, address = self.client_socket.recvfrom(512)
-				unpackFormat = 'iiiiiiiiiii16si'+str(len(response[4*12+16]))+'s'
+				unpackFormat = 'iiiiiiiiiii16si'+str(len(response[4*12+16:]))+'s'
 				response = unpack(unpackFormat, response)
 				#perform checksum for ack
 				#check to see if syn and ack AND values for sequence number and ack fields match with what we expect
@@ -217,7 +217,7 @@ class client:
 					while not self.closed:
 						try:
 							fin, address = self.client_socket.recvfrom(512)
-							finFormat = 'iiiiiiiiiii16si'+str(len(fin[4*12+16]))+'s'
+							finFormat = 'iiiiiiiiiii16si'+str(len(fin[4*12+16:]))+'s'
 							fin = unpack(finFormat, fin) 
 							fin_packet=packet(fin[0], fin[1], fin[2], fin[3], fin[4], fin[5], fin[6], fin[7], fin[8], fin[9], fin[10], fin[11], fin[12], fin[13])
 							if fin_packet.checksum != self.u.checksum(fin_packet):
