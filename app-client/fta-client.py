@@ -44,6 +44,10 @@ class appclient:
 			elif (inputs[0] == 'get'):
 				self.get(inputs[1])
 
+			elif (vals[0] == 'window'):
+				window_size = int(vals[1])
+				self.client_socket.setWindowSize(window_size)
+
 			elif (inputs[0] == 'disconnect'):
 				self.disconnected = True
 
@@ -78,18 +82,8 @@ class appclient:
 		f.close()
 
 		if (self.established):			
-			print stream
 			self.client_socket.sendMessage(stream)
 
-
-		# Need to init the client from the Transport layer
-
-	# def decodeMessage(self, message):
-
-	# 	message = message.split('/')
-	# 	f = open(message[0], 'w')
-	# 	f.write(message[1])
-	# 	f.close()
 
 
 client = appclient();

@@ -67,6 +67,11 @@ class appserver:
 					f.close()
 					self.server_socket.sendMessage(data)
 
+				elif (vals[0] == 'window'):
+
+					window_size = int(vals[1])
+					self.server_socket.setWindowSize(window_size)
+
 
 server = appserver()
 

@@ -176,6 +176,9 @@ class server:
 
 		return message
 
+	def setWindowSize(self, window_size):
+		self.window_size = window_size
+
 # server_object = server(4001, 8000, '')
 # server_object.connect()
 # # server_object.connect()
