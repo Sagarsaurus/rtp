@@ -173,9 +173,9 @@ class server:
 
 		return message
 
-server_object = server(4001, 8000, '')
-server_object.connect()
+# server_object = server(4001, 8000, '')
 # server_object.connect()
-#message = server_object.receive()
-#print message
-server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")
+# # server_object.connect()
+# #message = server_object.receive()
+# #print message
+# server_object.sendMessage("This entire message must reach the server completely intact, hopefully it does this properly, this is just to add more to it in an attempt to mess with it")

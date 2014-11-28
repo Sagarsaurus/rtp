@@ -41,6 +41,9 @@ class appclient:
 			elif (inputs[0] == 'post'):
 				self.post(inputs[1])
 
+			elif (inputs[0] == 'get'):
+				self.get(inputs[1])
+
 			elif (inputs[0] == 'disconnect'):
 				self.disconnected = True
 
@@ -54,17 +57,28 @@ class appclient:
 		else:
 			return None
 
-	def post(self, filename):
-		f = open(filename, "rb");
-		stream = filename.encode('utf-8') + '/' + f.read();
-		f.close();
+	def get(self, filename):
+
+		bslash = '/'.encode('utf-8')
+		stream = 'get'.encode('utf-8') + bslash + filename.encode('utf-8')
 
 		if (self.established):
-			# posting = self.client_socket.connect(self.port, self.dest_port, self.dest_ip, 0, 1)
-			# print posting
-			# if (posting):
-				print stream
-				self.client_socket.sendMessage(stream)
+			print stream
+			self.client_socket.sendMessage(stream)
+			message = self.client_socket.receiveMessage()
+			print message
+
+
+
+	def post(self, filename):
+		f = open(filename, "rb")
+		bslash = '/'.encode('utf-8')
+		stream = 'post'.encode('utf-8') + bslash + filename.encode('utf-8') + bslash + f.read()
+		f.close()
+
+		if (self.established):			
+			print stream
+			self.client_socket.sendMessage(stream)
 
 
 		# Need to init the client from the Transport layer
@@ -75,8 +89,6 @@ class appclient:
 		f = open(message[0], 'w')
 		f.write(message[1])
 		f.close()
-
-
 
 
 client = appclient();
