@@ -47,7 +47,18 @@ class appserver:
 
 			if (inputs[0] == 'y'):
 				message = self.server_socket.receive()
-				print "Message: ", message
+				filename = ''
+				i = 0
+
+				while (message[i] is not '/'):
+					filename += message[i]
+					i += 1
+
+				data = message[i+1:]
+
+				f = open(filename, 'w')
+				f.write(data)
+				f.close()
 
 server = appserver()
 

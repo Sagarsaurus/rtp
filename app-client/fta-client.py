@@ -72,7 +72,6 @@ class appclient:
 	def decodeMessage(self, message):
 
 		message = message.split('/')
-
 		f = open(message[0], 'w')
 		f.write(message[1])
 		f.close()
