@@ -17,7 +17,10 @@ class util:
 		data += self.int2bin(packet.get).encode('utf-8')
 		data += self.int2bin(packet.post).encode('utf-8')
 		data += self.int2bin(packet.fcw).encode('utf-8')
-		data += (packet.data).encode('utf-8')
+		try:
+			data += (packet.data).encode('utf-8')
+		except UnicodeError:
+			data += packet.data
 
 		sum1 = 0
 		sum2 = 0

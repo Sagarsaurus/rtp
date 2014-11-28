@@ -211,6 +211,7 @@ class server:
 
 		return message
 
+<<<<<<< HEAD
 	def close(self):
 		self.server_socket.settimeout(2)
 		while True:
@@ -271,8 +272,10 @@ class server:
 			except socket.timeout:
 				continue
 
-server_object = server(4001, 8000, '')
-server_object.connect()
+
+	def setWindowSize(self, window_size):
+		self.window_size = window_size
+
 # # server_object.connect()
 #message = server_object.receive()
 #print message
