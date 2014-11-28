@@ -214,7 +214,7 @@ class server:
 					#continue
 				#check if data is corrupted, if it is, send a NACK
 			except socket.timeout:
-				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, '', len(fcwBuffer) * self.fcwUnit - count * fcwUnit, 'a')
+				responsePacket = packet(self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, '', len(fcwBuffer) * self.fcwUnit - count * self.fcwUnit, 'a')
 				response = pack('iiiiiiiiiii16sis', self.port, self.dest_port, self.seq_num, self.expected_seq_number, 0, 1, 0, 0, 0, 0, 0, self.u.checksum(responsePacket), len(fcwBuffer) * self.fcwUnit - count * fcwUnit, 'a')
 				#print response
 				self.server_socket.sendto(response, ('', self.dest_port))
