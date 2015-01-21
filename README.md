@@ -1,6 +1,8 @@
 rtp
 ===
 
+This is a File Transfer Application written by Samarth and myself.  The entire application, from the Application layer to the transport layer was written by us.  The transport layer protocol uses the Go-Back-N Protocol to transfer packets.
+
 Running instructions
 
 We had trouble connecting the the server so you'll have to run the NetEmu server locally. Start the NetEmu server on any port. Let's call that neport.
